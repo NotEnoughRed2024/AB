@@ -1,0 +1,236 @@
+// flash.display.BitmapData on top of an SDL render-target texture.
+#include <algorithm>
+#include <cmath>
+
+#include "Display.h"
+#include "Filters.h"
+#include "Stage.h"
+
+namespace flash {
+
+static constexpr double BITMAP_RES = 2.0;  // texture pixels per logical pixel (matches the atlas scale)
+
+BitmapData::BitmapData(Stage* s, int w, int h, bool tr, unsigned fill)
+    : width(w), height(h), transparent(tr), res(BITMAP_RES), stage(s) {
+    tw = std::max(1, (int)std::ceil(w * res));
+    th = std::max(1, (int)std::ceil(h * res));
+    texture = SDL_CreateTexture(s->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, tw, th);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    Rect r;
+    r.add(0, 0);
+    r.add(w, h);
+    fillRect(r, transparent ? fill : (fill | 0xFF000000u));
+}
+
+BitmapData::~BitmapData() { dispose(); }
+
+void BitmapData::dispose() {
+    if (texture) SDL_DestroyTexture(texture);
+    texture = nullptr;
+}
+
+struct TargetScope {
+    Stage* s;
+    SDL_Texture* prev;
+    int pw, ph;
+    Matrix pview;
+    TargetScope(Stage* st, SDL_Texture* t, int w, int h) : s(st) {
+        prev = s->currentTarget;
+        pw = s->targetW;
+        ph = s->targetH;
+        pview = s->view;
+        SDL_SetRenderTarget(s->renderer, t);
+        s->currentTarget = t;
+        s->targetW = w;
+        s->targetH = h;
+    }
+    ~TargetScope() {
+        SDL_SetRenderTarget(s->renderer, prev);
+        s->currentTarget = prev;
+        s->targetW = pw;
+        s->targetH = ph;
+        s->view = pview;
+    }
+};
+
+void BitmapData::fillRect(Rect r, unsigned argb) {
+    if (!texture) return;
+    TargetScope ts(stage, texture, tw, th);
+    unsigned a = transparent ? (argb >> 24) : 255;
+    // premultiplied storage for transparent bitmaps
+    double k = transparent ? a / 255.0 : 1.0;
+    SDL_SetRenderDrawColor(stage->renderer, (Uint8)(((argb >> 16) & 255) * k), (Uint8)(((argb >> 8) & 255) * k),
+                           (Uint8)((argb & 255) * k), (Uint8)a);
+    SDL_SetRenderDrawBlendMode(stage->renderer, SDL_BLENDMODE_NONE);
+    SDL_FRect fr{(float)(r.xMin * res), (float)(r.yMin * res), (float)(r.width() * res), (float)(r.height() * res)};
+    SDL_RenderFillRect(stage->renderer, &fr);
+}
+
+void BitmapData::draw(DisplayObject* src, const Matrix& m, const ColorTransform* ct, Blend blend) {
+    if (!texture || !src) return;
+    TargetScope ts(stage, texture, tw, th);
+    // Flash ignores the source's own matrix, colour transform and blend mode for draw()
+    double sx = src->x, sy = src->y, sxs = src->xscale, sys = src->yscale, sr = src->rotation, sk = src->skew;
+    double sa = src->alpha;
+    ColorTransform sc = src->color;
+    Blend sb = src->blendMode;
+    bool sv = src->visible;
+    src->x = src->y = 0;
+    src->xscale = src->yscale = 100;
+    src->rotation = src->skew = 0;
+    src->alpha = 100;
+    src->color = ColorTransform();
+    src->blendMode = Blend::Normal;
+    src->visible = true;
+    Matrix base = Matrix::make(res, 0, 0, res, 0, 0) * m;
+    stage->renderObject(src, base, ct ? *ct : ColorTransform(), blend, transparent);
+    src->x = sx; src->y = sy; src->xscale = sxs; src->yscale = sys; src->rotation = sr; src->skew = sk;
+    src->alpha = sa; src->color = sc; src->blendMode = sb; src->visible = sv;
+}
+
+void BitmapData::draw(BitmapData* src, const Matrix& m, const ColorTransform* ct, Blend blend) {
+    if (!texture || !src || !src->texture) return;
+    TargetScope ts(stage, texture, tw, th);
+    Matrix base = Matrix::make(res, 0, 0, res, 0, 0) * m * Matrix::make(1.0 / src->res, 0, 0, 1.0 / src->res, 0, 0);
+    stage->drawTexture(src->texture, src->tw, src->th, base, ct ? *ct : ColorTransform(), blend, src->transparent);
+}
+
+std::vector<uint32_t> BitmapData::readPixels() {
+    std::vector<uint32_t> out((size_t)tw * th, 0);
+    if (!texture) return out;
+    TargetScope ts(stage, texture, tw, th);
+    SDL_Surface* s = SDL_RenderReadPixels(stage->renderer, nullptr);
+    if (!s) return out;
+    SDL_Surface* cs = SDL_ConvertSurface(s, SDL_PIXELFORMAT_ARGB8888);
+    SDL_DestroySurface(s);
+    if (!cs) return out;
+    for (int y = 0; y < std::min(th, cs->h); y++)
+        SDL_memcpy(&out[(size_t)y * tw], (Uint8*)cs->pixels + y * cs->pitch, (size_t)std::min(tw, cs->w) * 4);
+    SDL_DestroySurface(cs);
+    return out;
+}
+
+void BitmapData::writePixels(const std::vector<uint32_t>& px) {
+    if (!texture) return;
+    SDL_Texture* up = TexturePool::get().acquire(stage->renderer, tw, th, SDL_TEXTUREACCESS_STREAMING);
+    float uw, uh;
+    SDL_GetTextureSize(up, &uw, &uh);
+    std::vector<uint32_t> buf((size_t)uw * uh, 0);
+    for (int y = 0; y < th; y++) SDL_memcpy(&buf[(size_t)y * (int)uw], &px[(size_t)y * tw], (size_t)tw * 4);
+    SDL_UpdateTexture(up, nullptr, buf.data(), (int)uw * 4);
+    TargetScope ts(stage, texture, tw, th);
+    SDL_SetTextureBlendMode(up, SDL_BLENDMODE_NONE);
+    SDL_FRect src{0, 0, (float)tw, (float)th};
+    SDL_RenderTexture(stage->renderer, up, &src, nullptr);
+}
+
+void BitmapData::applyBlur(double bx, double by, int quality) {
+    PixelBuffer pb;
+    pb.w = tw;
+    pb.h = th;
+    pb.px = readPixels();
+    boxBlur(pb, bx * res, by * res, quality);
+    writePixels(pb.px);
+}
+
+void BitmapData::applyFilter(const Filter& f) {
+    PixelBuffer pb;
+    pb.w = tw;
+    pb.h = th;
+    pb.px = readPixels();
+    applyFilterCPU(pb, f, res);
+    writePixels(pb.px);
+}
+
+void BitmapData::colorTransform(const ColorTransform& ct) {
+    auto px = readPixels();
+    for (auto& p : px) {
+        double a = p >> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+        if (transparent) {
+            if (a <= 0) continue;
+            r = r * 255 / a; g = g * 255 / a; b = b * 255 / a;
+        }
+        r = std::clamp(r * ct.rm + ct.ra, 0.0, 255.0);
+        g = std::clamp(g * ct.gm + ct.ga, 0.0, 255.0);
+        b = std::clamp(b * ct.bm + ct.ba, 0.0, 255.0);
+        a = transparent ? std::clamp(a * ct.am + ct.aa, 0.0, 255.0) : 255.0;
+        double k = transparent ? a / 255.0 : 1.0;
+        p = ((uint32_t)a << 24) | ((uint32_t)(r * k) << 16) | ((uint32_t)(g * k) << 8) | (uint32_t)(b * k);
+    }
+    writePixels(px);
+}
+
+// --- Perlin noise (Flash-style fractal noise; not bit-exact with Flash, only used for textures)
+static double fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+static double lerp(double a, double b, double t) { return a + (b - a) * t; }
+
+void BitmapData::perlinNoise(double baseX, double baseY, int octaves, int seed, bool, bool fractal, int channels,
+                             bool grey) {
+    int perm[512];
+    uint32_t s = (uint32_t)seed * 2654435761u + 1;
+    int p[256];
+    for (int i = 0; i < 256; i++) p[i] = i;
+    for (int i = 255; i > 0; i--) {
+        s = s * 1103515245u + 12345u;
+        int j = (int)((s >> 16) % (uint32_t)(i + 1));
+        std::swap(p[i], p[j]);
+    }
+    for (int i = 0; i < 512; i++) perm[i] = p[i & 255];
+    auto grad = [&](int h, double x, double y) {
+        switch (h & 3) {
+            case 0: return x + y;
+            case 1: return -x + y;
+            case 2: return x - y;
+            default: return -x - y;
+        }
+    };
+    auto noise = [&](double x, double y, int ch) {
+        int X = (int)std::floor(x) & 255, Y = (int)std::floor(y) & 255;
+        x -= std::floor(x);
+        y -= std::floor(y);
+        double u = fade(x), v = fade(y);
+        int o = ch * 37;
+        int aa = perm[perm[X + o & 255] + Y], ab = perm[perm[X + o & 255] + Y + 1];
+        int ba = perm[perm[(X + 1 + o) & 255] + Y], bb = perm[perm[(X + 1 + o) & 255] + Y + 1];
+        return lerp(lerp(grad(aa, x, y), grad(ba, x - 1, y), u), lerp(grad(ab, x, y - 1), grad(bb, x - 1, y - 1), u), v);
+    };
+    std::vector<uint32_t> px((size_t)tw * th);
+    for (int y = 0; y < th; y++)
+        for (int x = 0; x < tw; x++) {
+            double lx = x / res, ly = y / res;
+            int out[3] = {0, 0, 0};
+            for (int ch = 0; ch < (grey ? 1 : 3); ch++) {
+                double sum = 0, amp = 1, fx = lx / baseX, fy = ly / baseY, tot = 0;
+                for (int o = 0; o < std::max(1, octaves); o++) {
+                    double n = noise(fx, fy, ch + o * 3);
+                    sum += (fractal ? n : std::fabs(n)) * amp;
+                    tot += amp;
+                    amp *= 0.5;
+                    fx *= 2;
+                    fy *= 2;
+                }
+                double v = fractal ? (sum / tot * 0.5 + 0.5) : (sum / tot);
+                out[ch] = (int)std::clamp(v * 255.0, 0.0, 255.0);
+            }
+            if (grey) out[1] = out[2] = out[0];
+            px[(size_t)y * tw + x] = 0xFF000000u | (out[0] << 16) | (out[1] << 8) | out[2];
+        }
+    (void)channels;
+    writePixels(px);
+}
+
+unsigned BitmapData::getPixel32(int x, int y) {
+    auto px = readPixels();
+    int ix = (int)(x * res), iy = (int)(y * res);
+    if (ix < 0 || iy < 0 || ix >= tw || iy >= th) return 0;
+    return px[(size_t)iy * tw + ix];
+}
+
+void BitmapData::setPixel32(int x, int y, unsigned argb) {
+    Rect r;
+    r.add(x, y);
+    r.add(x + 1, y + 1);
+    fillRect(r, argb);
+}
+
+}  // namespace flash
