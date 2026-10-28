@@ -1,5 +1,6 @@
 // Game data (zones, missions, items, shop, text) and the player's state, ported from com/*.hx.
 #pragma once
+#include <SDL3/SDL.h>  // before json.hpp (MinGW: <intrin.h> must precede <cpuid.h>)
 #include <array>
 #include <climits>
 #include <string>

@@ -30,6 +30,8 @@ target_include_directories(stb PUBLIC third_party)
 add_executable(alphabounce src/main.cpp ${FLASH_SRC} ${GAME_SRC})
 target_include_directories(alphabounce PRIVATE src src/flash third_party)
 target_link_libraries(alphabounce PRIVATE SDL3::SDL3 stb)
+# json.hpp's SSSE3 path pulls in <cpuid.h>, whose __cpuid macro breaks SDL's <intrin.h> on MinGW
+target_compile_definitions(alphabounce PRIVATE NLOHMANN_JSON_NO_TARGET_ATTRIBUTE)
 
 # keep assets/ and data/ next to the executable so it runs from the build folder too
 add_custom_command(TARGET alphabounce POST_BUILD
@@ -45,6 +47,7 @@ endif()
 add_executable(symbolviewer EXCLUDE_FROM_ALL tools/symbolviewer.cpp ${FLASH_SRC})
 target_include_directories(symbolviewer PRIVATE src src/flash third_party)
 target_link_libraries(symbolviewer PRIVATE SDL3::SDL3 stb)
+target_compile_definitions(symbolviewer PRIVATE NLOHMANN_JSON_NO_TARGET_ATTRIBUTE)
 
 if(MSVC)
   target_compile_options(alphabounce PRIVATE /W3)
