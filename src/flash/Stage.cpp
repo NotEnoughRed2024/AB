@@ -77,16 +77,24 @@ void Stage::handleEvent(const SDL_Event& e) {
         case SDL_EVENT_MOUSE_MOTION: {
             float fx = e.motion.x, fy = e.motion.y;
             SDL_RenderCoordinatesFromWindow(renderer, fx, fy, &fx, &fy);
+            // like the Flash plugin, the game keeps receiving the pointer position outside its area
+            // (it shows "POINTER OUT OF GAME ZONE" then), but not clicks
             mouseX = (fx - viewX) / viewScale;
             mouseY = (fy - viewY) / viewScale;
+            pointerInGame = insideGame(fx, fy);
+            applyCursor();
             updatePointer();
             auto ls = mouseListeners;
             for (auto& l : ls)
                 if (l->onMouseMove) l->onMouseMove();
             break;
         }
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: {
             if (e.button.button != SDL_BUTTON_LEFT) break;
+            float fx = e.button.x, fy = e.button.y;
+            SDL_RenderCoordinatesFromWindow(renderer, fx, fy, &fx, &fy);
+            if (!insideGame(fx, fy)) break;
+            gameOwnsButton = true;
             mouseDown = true;
             {
                 auto h = hover.lock();
@@ -97,8 +105,10 @@ void Stage::handleEvent(const SDL_Event& e) {
                     if (l->onMouseDown) l->onMouseDown();
             }
             break;
+        }
         case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (e.button.button != SDL_BUTTON_LEFT) break;
+            if (e.button.button != SDL_BUTTON_LEFT || !gameOwnsButton) break;
+            gameOwnsButton = false;
             mouseDown = false;
             {
                 auto p = pressed.lock();
@@ -525,20 +535,50 @@ void Stage::drawStrokes(const std::vector<MovieClip::Stroke>& strokes, const Mat
     }
 }
 
-void Stage::render() {
+void Stage::updateView() {
     int ow, oh;
     SDL_GetCurrentRenderOutputSize(renderer, &ow, &oh);
-    viewScale = std::min((double)ow / width, (double)oh / height);
-    viewX = std::floor((ow - width * viewScale) / 2);
-    viewY = std::floor((oh - height * viewScale) / 2);
+    double ax = 0, ay = 0, aw = ow, ah = oh;
+    if (gameRect.w > 0 && gameRect.h > 0) {
+        ax = gameRect.x;
+        ay = gameRect.y;
+        aw = gameRect.w;
+        ah = gameRect.h;
+    }
+    viewScale = std::min(aw / width, ah / height);
+    viewX = std::floor(ax + (aw - width * viewScale) / 2);
+    viewY = std::floor(ay + (ah - height * viewScale) / 2);
     view = Matrix::make(viewScale, 0, 0, viewScale, viewX, viewY);
-    currentTarget = nullptr;
     targetW = ow;
     targetH = oh;
+}
+
+bool Stage::insideGame(float wx, float wy) const {
+    double gw = width * viewScale, gh = height * viewScale;
+    return wx >= viewX && wy >= viewY && wx < viewX + gw && wy < viewY + gh;
+}
+
+void Stage::applyCursor() {
+    bool hide = mouseHidden && pointerInGame;
+    if (hide == SDL_CursorVisible()) {
+        if (hide) SDL_HideCursor();
+        else SDL_ShowCursor();
+    }
+}
+
+void Stage::render(bool clear) {
+    updateView();
+    currentTarget = nullptr;
     SDL_SetRenderTarget(renderer, nullptr);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
     SDL_Rect clip{(int)viewX, (int)viewY, (int)std::ceil(width * viewScale), (int)std::ceil(height * viewScale)};
+    if (clear) {
+        SDL_RenderClear(renderer);
+    } else {
+        SDL_FRect bg{(float)clip.x, (float)clip.y, (float)clip.w, (float)clip.h};
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        SDL_RenderFillRect(renderer, &bg);
+    }
     SDL_SetRenderClipRect(renderer, &clip);
     renderObject(root.get(), view, ColorTransform(), Blend::Normal, false);
     SDL_SetRenderClipRect(renderer, nullptr);

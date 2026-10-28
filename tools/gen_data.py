@@ -5,6 +5,7 @@ Reads (from Motion Twin's WebGamesArchives/Alphabounce):
   com/ZoneInfo.hx     -> planets (real "web" list), black holes
   com/ShopInfo.hx     -> shop items
   client/src/Text{En,Fr,De,Es}.hx -> UI text per language
+  web/xml/{en,fr,de,es}/texts.xml -> website texts (mission feed, vignettes) -> site_<lang>.json
 
 usage: python3 gen_data.py <path to Alphabounce folder> <out dir>
 """
@@ -244,6 +245,29 @@ def main():
         with open(os.path.join(out, 'text_%s.json' % lang.lower()), 'w', encoding='utf-8') as f:
             json.dump(texts, f, ensure_ascii=False, indent=0)
         print('text_%s.json: %d entries' % (lang.lower(), len(texts)))
+
+
+    # website texts: the mission feed (mission_name_N / mission_desc_N / mission_end_N), vignette names
+    swap = {'\u2019': "'", '\u2018': "'", '\u00b4': "'", '\u00ab': '"', '\u00bb': '"', '\u00a0': ' ',
+            '\u00b0': 'o', '\u2026': '...'}
+    for lang in ('en', 'fr', 'de', 'es'):
+        path = os.path.join(base, 'web/xml/%s/texts.xml' % lang)
+        if not os.path.exists(path):
+            continue
+        src = re.sub(r'<!--.*?-->', '', read(path), flags=re.S)
+        site = {}
+        for m in re.finditer(r'<t id="([^"]+)">(.*?)</t>', src, re.S):
+            key, val = m.group(1), m.group(2)
+            if not (key.startswith('mission_') or key.startswith('vig') or key.startswith('date_')):
+                continue
+            val = re.sub(r'\s+', ' ', val).strip()
+            val = re.sub(r'>\s+<', '><', val)
+            for a, b in swap.items():
+                val = val.replace(a, b)
+            site[key] = val
+        with open(os.path.join(out, 'site_%s.json' % lang), 'w', encoding='utf-8') as f:
+            json.dump(site, f, ensure_ascii=False, indent=0)
+        print('site_%s.json: %d entries' % (lang, len(site)))
 
 
 if __name__ == '__main__':

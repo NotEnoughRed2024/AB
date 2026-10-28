@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <cmath>
+#include <ctime>
 
 #include "flash/Stage.h"
 #include "mt/Haxe.h"
@@ -178,6 +179,10 @@ void PlayerInfo::setToDefault() {
     minerai = 0;
     missions = SparseInts();
     missions.set(0, 0);
+    log.clear();
+    logMission(0, 0);
+    stats = PlayerStats();
+    stats.firstPlayed = (long long)time(nullptr);
     missile = 0;
     missileMax = 0;
     engine = 1;
@@ -268,6 +273,35 @@ void PlayerInfo::loadCache() {
             houseDone.push_back(v);
         }
     items.set(MissionInfo::MINES, SparseInts::NONE);  // the original clears this on every load
+
+    log.clear();
+    if (so["log"].is_array()) {
+        for (auto& e : so["log"])
+            if (e.is_array() && e.size() >= 3) log.push_back({(int)e[0], (int)e[1], (long long)e[2]});
+    } else {
+        // saves from before the mission feed existed: rebuild the log without dates
+        for (int n = 0; n < missions.size(); n++) {
+            int st = missions.get(n);
+            if (st == SparseInts::NONE) continue;
+            log.push_back({n, 0, 0});
+            if (st == 1) log.push_back({n, 1, 0});
+        }
+    }
+    const json& js = so["stats"];
+    if (js.is_object()) {
+        stats.levels = js.value("levels", 0);
+        stats.cleared = js.value("cleared", 0);
+        stats.lost = js.value("lost", 0);
+        stats.mineralsTotal = js.value("mineralsTotal", 0);
+        stats.bestMinerals = js.value("bestMinerals", 0);
+        stats.missilesFired = js.value("missilesFired", 0);
+        stats.playSeconds = js.value("playSeconds", 0LL);
+        stats.firstPlayed = js.value("firstPlayed", 0LL);
+    }
+}
+
+void PlayerInfo::logMission(int n, int state) {
+    log.push_back({n, state, (long long)time(nullptr)});
 }
 
 void PlayerInfo::saveCache() {
@@ -297,6 +331,13 @@ void PlayerInfo::saveCache() {
         tr.push_back({{"name", t.name}, {"sx", t.sx}, {"sy", t.sy}, {"ex", t.ex}, {"ey", t.ey}, {"start", t.start}, {"dest", t.dest}});
     so["travel"] = tr;
     so["houseDone"] = houseDone;
+    json lg = json::array();
+    for (auto& e : log) lg.push_back({e.mission, e.state, e.time});
+    so["log"] = lg;
+    so["stats"] = {{"levels", stats.levels}, {"cleared", stats.cleared}, {"lost", stats.lost},
+                   {"mineralsTotal", stats.mineralsTotal}, {"bestMinerals", stats.bestMinerals},
+                   {"missilesFired", stats.missilesFired}, {"playSeconds", stats.playSeconds},
+                   {"firstPlayed", stats.firstPlayed}};
     st->flushSharedObject("info");
 }
 
@@ -352,6 +393,7 @@ void PlayerInfo::checkMission() {
         const Mission& mi = MissionInfo::LIST[n];
         if (missions.get(n) == 0 && isAllConditionsOk(mi.conditions)) {
             missions.set(n, 1);
+            logMission(n, 1);
             for (auto& a : mi.endItem) addStuff(a);
         }
     }
@@ -359,6 +401,7 @@ void PlayerInfo::checkMission() {
         const Mission& mi = MissionInfo::LIST[n];
         if (missions.get(n) == SparseInts::NONE && isAllConditionsOk(mi.startConditions)) {
             missions.set(n, 0);
+            logMission(n, 0);
             for (auto& a : mi.startItem) addStuff(a);
         }
     }

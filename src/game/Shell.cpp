@@ -13,8 +13,14 @@ MC Shell::mcPlanet;
 
 static constexpr int DP_MAP = 1;
 
-void Shell::hideMouse() { SDL_HideCursor(); }
-void Shell::showMouse() { SDL_ShowCursor(); }
+void Shell::hideMouse() {
+    flash::Stage::get()->mouseHidden = true;
+    flash::Stage::get()->applyCursor();
+}
+void Shell::showMouse() {
+    flash::Stage::get()->mouseHidden = false;
+    flash::Stage::get()->applyCursor();
+}
 
 // ------------------------------------------------------------------ SectorMap (navi.Map.drawBg)
 
@@ -197,6 +203,14 @@ void Shell::playDirect(int wx, int wy) {
 // Api.endGame, offline branch ("emulation de la partie serveur")
 void Shell::endGame(int x, int y, bool victory, int min, int missiles, int itemId, const std::vector<int>& shopItems) {
     PlayerInfo* p = Cs::pi;
+    p->stats.levels++;
+    if (victory) p->stats.cleared++;
+    else p->stats.lost++;
+    p->stats.mineralsTotal += std::max(0, min);
+    p->stats.bestMinerals = std::max(p->stats.bestMinerals, min);
+    if (missiles < p->missile) p->stats.missilesFired += p->missile - missiles;
+    if (levelStartMs > 0) p->stats.playSeconds += (long long)((SDL_GetTicks() - levelStartMs) / 1000);
+    levelStartMs = 0;
     p->minerai += min;
     p->missile = missiles;
     p->addItem(itemId);
@@ -314,4 +328,5 @@ void Shell::startLevel(int wx, int wy) {
     game = std::make_unique<Game>(mcGame, col);
     game->initLevel(wx, wy, zid, true, nullptr);
     game->initPlay();
+    levelStartMs = SDL_GetTicks();
 }

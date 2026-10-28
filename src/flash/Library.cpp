@@ -279,10 +279,19 @@ const Font* Library::font(int id) const {
 }
 
 const Font* Library::fontByName(const std::string& n, bool bold) const {
+    // deterministic choice: matching style first, then the most glyphs, then the first defined
+    // (gfx.swf embeds two "Verdana" fonts; the later one, 858, has narrower outlines)
     const Font* best = nullptr;
+    int bestId = 0;
+    auto score = [&](const Font& f) {
+        return (f.bold == bold ? 1000000 : 0) + (SDL_strcasecmp(f.name.c_str(), n.c_str()) == 0 ? 100000 : 0) +
+               (int)f.glyphs.size();
+    };
     for (const auto& [id, f] : fonts) {
-        if (SDL_strcasecmp(f.name.c_str(), n.c_str()) == 0 || SDL_strcasestr(f.name.c_str(), n.c_str())) {
-            if (!best || (f.bold == bold && best->bold != bold) || f.glyphs.size() > best->glyphs.size()) best = &f;
+        if (SDL_strcasecmp(f.name.c_str(), n.c_str()) != 0 && !SDL_strcasestr(f.name.c_str(), n.c_str())) continue;
+        if (!best || score(f) > score(*best) || (score(f) == score(*best) && id < bestId)) {
+            best = &f;
+            bestId = id;
         }
     }
     return best;

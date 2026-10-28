@@ -79,6 +79,19 @@ struct SparseInts {
     void fromJson(const nlohmann::json& j);
 };
 
+// Offline stand-ins for what the website recorded: when each mission started/ended (for the
+// mission feed) and a few personal records (for the "Records" tab that replaces the rankings).
+struct MissionLogEntry {
+    int mission = 0;
+    int state = 0;      // 0 = received, 1 = completed
+    long long time = 0; // unix seconds
+};
+
+struct PlayerStats {
+    int levels = 0, cleared = 0, lost = 0, mineralsTotal = 0, bestMinerals = 0, missilesFired = 0;
+    long long playSeconds = 0, firstPlayed = 0;
+};
+
 struct Travel {
     std::string name;
     int sx = 0, sy = 0, ex = 0, ey = 0, start = 0, dest = 0;
@@ -103,6 +116,9 @@ public:
     std::vector<int> comp;
     std::vector<Travel> travel;
     std::vector<std::vector<int>> houseDone;
+    std::vector<MissionLogEntry> log;
+    PlayerStats stats;
+    void logMission(int n, int state);
 
     PlayerInfo();
     void setToDefault();

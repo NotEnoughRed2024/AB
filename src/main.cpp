@@ -7,15 +7,21 @@
 //   --autoplay            let the pad play by itself (the original's PLAY_AUTO mode)
 //   --frames N            quit after N frames
 //   --shot FILE           save a PNG of the last frame (with --frames)
-//   --scale N             window scale (default 2)
+//   --scale N             window scale (default: fit the screen)
+//   --fullscreen          start in full screen (F11 or Alt+Enter toggles)
+//   --bare                just the game, without the page around it
+//   --tab N               open the page on tab N (0 missions, 1 my page, 2 records, 3 help)
+//   --size WxH            window size in pixels (testing)
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
 #include <cstdio>
+#include <memory>
 #include <string>
 
 #include "flash/Stage.h"
 #include "game/Shell.h"
+#include "site/Site.h"
 #include "stb_image_write.h"
 
 static bool fileExists(const std::string& p) {
@@ -36,8 +42,9 @@ static bool saveShot(SDL_Renderer* r, const char* path) {
 
 int main(int argc, char** argv) {
     std::string lang = "en", base, shot;
-    int frames = -1, scale = 2;
-    bool autoplay = false, directPlay = false;
+    int frames = -1, tab = 0, winW = 0, winH = 0;
+    double scale = 0;
+    bool autoplay = false, directPlay = false, fullscreen = false, bare = false;
     int playX = 0, playY = 0;
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
@@ -46,7 +53,11 @@ int main(int argc, char** argv) {
         else if (a == "--assets") base = next();
         else if (a == "--frames") frames = std::atoi(next().c_str());
         else if (a == "--shot") shot = next();
-        else if (a == "--scale") scale = std::max(1, std::atoi(next().c_str()));
+        else if (a == "--scale") scale = std::max(0.5, std::atof(next().c_str()));
+        else if (a == "--fullscreen") fullscreen = true;
+        else if (a == "--bare") bare = true;
+        else if (a == "--tab") tab = std::atoi(next().c_str());
+        else if (a == "--size") std::sscanf(next().c_str(), "%dx%d", &winW, &winH);
         else if (a == "--autoplay") autoplay = true;
         else if (a == "--play") {
             directPlay = true;
@@ -66,8 +77,21 @@ int main(int argc, char** argv) {
     }
     SDL_SetAppMetadata("Alphabounce", "0.1", "org.fans.alphabounce");
     bool headless = !shot.empty();
-    SDL_Window* win = SDL_CreateWindow("Alphabounce", 400 * scale, 360 * scale,
-                                       SDL_WINDOW_RESIZABLE | (headless ? SDL_WINDOW_HIDDEN : 0));
+    // the page is 900x500 (the game alone 400x360); by default fill most of the screen
+    double pageW = bare ? 400 : 900, pageH = bare ? 360 : 500;
+    if (scale <= 0) {
+        scale = 2;
+        SDL_Rect usable;
+        if (SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &usable) && usable.w > 0)
+            scale = std::max(1.0, std::min(usable.w * 0.9 / pageW, usable.h * 0.85 / pageH));
+    }
+    if (winW <= 0 || winH <= 0) {
+        winW = (int)(pageW * scale);
+        winH = (int)(pageH * scale);
+    }
+    SDL_Window* win = SDL_CreateWindow("Alphabounce", winW, winH,
+                                       SDL_WINDOW_RESIZABLE | (headless ? SDL_WINDOW_HIDDEN : 0) |
+                                           (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (!win) {
         SDL_Log("window: %s", SDL_GetError());
         return 1;
@@ -92,6 +116,16 @@ int main(int argc, char** argv) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Alphabounce", "Could not load data/game_data.json.", win);
             return 1;
         }
+        std::unique_ptr<site::Site> page;
+        if (!bare) {
+            page = std::make_unique<site::Site>();
+            if (!page->init(ren, base + "assets/site", base + "data", lang)) {
+                SDL_Log("page graphics missing - running the game alone");
+                page.reset();
+            } else {
+                page->setTab(tab);
+            }
+        }
         Game::PLAY_AUTO = autoplay;
         stage.root->onEnterFrame = [&] { shell.update(); };
         if (directPlay) shell.playDirect(playX, playY);
@@ -105,7 +139,14 @@ int main(int argc, char** argv) {
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
                 if (e.type == SDL_EVENT_QUIT) run = false;
+                if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat &&
+                    (e.key.key == SDLK_F11 || (e.key.key == SDLK_RETURN && (e.key.mod & SDL_KMOD_ALT)))) {
+                    SDL_SetWindowFullscreen(win, !(SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN));
+                    continue;
+                }
+                if (page) page->layout();  // input mapping needs the current layout
                 stage.handleEvent(e);
+                if (page) page->handleEvent(e);
             }
             Uint64 now = SDL_GetTicksNS();
             acc += (now - last) / 1e6;
@@ -121,7 +162,18 @@ int main(int argc, char** argv) {
             }
             if (acc > frameMs * 4) acc = 0;
             if (shell.quitRequested) run = false;
-            stage.render();
+            if (page) {
+                page->update();
+                page->layout();
+                SDL_SetRenderTarget(ren, nullptr);
+                SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+                SDL_RenderClear(ren);
+                stage.currentTarget = nullptr;
+                page->render();
+                stage.render(false);
+            } else {
+                stage.render();
+            }
             if (!run && !shot.empty()) SDL_Log("screenshot %s: %s", shot.c_str(), saveShot(ren, shot.c_str()) ? "ok" : SDL_GetError());
             SDL_RenderPresent(ren);
             if (!headless) SDL_Delay(1);

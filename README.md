@@ -6,8 +6,9 @@ It is rebuilt from the source code Motion Twin released in
 
 > **Status:** early. The core brick-breaker is playable: level generation, bricks and their special
 > behaviours, the 26 capsule options, balls, molecules, missiles, drones, pause/specials and the end-of-level
-> flow, with progress saved locally. The galaxy map, shops, missions UI, lander mini-game and editor are not
-> ported yet; a simple sector-select screen stands in for the map.
+> flow, with progress saved locally. It runs inside a recreation of the alphabounce.com page (mission feed,
+> My Page, records, help). The galaxy map, shops, lander mini-game and editor are not ported yet; a simple
+> sector-select screen stands in for the map.
 
 ## How it works
 
@@ -25,7 +26,14 @@ Rather than redraw anything, the port keeps the original art and behaviour:
 - **`src/game/`** is the game itself, ported class by class from `client/src/*.hx`, keeping the original
   structure so the two can be read side by side.
 - **`tools/gen_data.py`** extracts missions, items, planets, shop items and all four languages' text
-  from the original sources into `data/*.json`.
+  from the original sources into `data/*.json`, plus the website's mission texts (`data/site_*.json`).
+- **`src/site/`** recreates the alphabounce.com page around the game, using the site's own graphics
+  (`assets/site/`, copied by `tools/site_assets.py`). The game sits in the left panel at its original
+  400×360 ratio and scales with the window; the right panel stretches to fill the width:
+  - **Missions**: the news feed of received and completed missions, with their vignettes and dates.
+  - **My Page**: envelope status, collected equipment and astroport purchases.
+  - **Records**: replaces the online rankings with your own figures (sectors cleared, minerals, play time…).
+  - **Help**: controls and a short guide. Bank and Forum were online-only and are left out.
 
 ### Faithfulness
 
@@ -64,8 +72,10 @@ lacks the custom blend modes used for Flash colour effects, so colours will be w
 Same as the original: the mouse moves the pad, click launches/glues/fires depending on the pad,
 **Space** or **X** fires missiles, **P**/**Esc** pauses (click a capsule to use it), **Enter** uses the
 first capsule. On the sector screen: arrow keys choose a sector, **Enter** plays.
+**F11** or **Alt+Enter** toggles full screen. The mouse wheel or **Page Up/Down** scrolls the right panel.
 
-Options: `--lang fr|de|es`, `--scale N`, `--play X,Y`, `--autoplay`.
+Options: `--lang fr|de|es`, `--fullscreen`, `--bare` (the game alone, without the page), `--scale N`,
+`--play X,Y`, `--autoplay`.
 
 ### Regenerating assets and data
 
@@ -78,13 +88,14 @@ pip install pillow playwright && playwright install chromium
 python3 tools/swfconv/convert.py WebGamesArchives/Alphabounce/client/swf/gfx.swf assets --vector mcShape,mcBrush,mcLuz
 python3 tools/swfconv/convert.py WebGamesArchives/Alphabounce/web/swf/planet.swf assets --name planet
 python3 tools/gen_data.py WebGamesArchives/Alphabounce data
+python3 tools/site_assets.py WebGamesArchives/Alphabounce assets
 ```
 
 ## Roadmap
 
 1. ~~Core brick-breaker~~ ✔
 2. Galaxy map (navigation, fog, planets, capsules/fuel, travellers, black holes)
-3. Shop, inventory and missions screens
+3. ~~Website page with mission feed~~ ✔ — shop and inventory screens of the map still to do
 4. Lander mini-game (planet surfaces)
 5. Level editor, menus/preferences, audio hooks
 

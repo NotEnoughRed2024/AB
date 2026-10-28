@@ -43,6 +43,7 @@ private:
     std::unique_ptr<Game> game;
     MC mcGame;
     bool pendingInfos = false;
+    Uint64 levelStartMs = 0;
     SectorMap smap;
 
     // sector select stand-in

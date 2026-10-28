@@ -30,6 +30,14 @@ public:
     double viewScale = 2;  // window pixels per logical pixel
     bool customBlend = true;  // false on renderers without SDL_ComposeCustomBlendMode support (software)
     double viewX = 0, viewY = 0;
+    // window-pixel rectangle the stage is drawn into (w <= 0: the whole window). The page around the
+    // game (src/site) draws the rest of the window itself.
+    SDL_FRect gameRect{0, 0, 0, 0};
+    bool pointerInGame = true;   // pointer currently over the game rectangle
+    bool gameOwnsButton = false; // the current mouse press started inside the game
+    void updateView();
+    bool insideGame(float wx, float wy) const;
+    void applyCursor();
     MC root;
     std::unordered_map<std::string, std::unique_ptr<Library>> libraries;
     Library* mainLib = nullptr;
@@ -48,7 +56,7 @@ public:
 
     // frame
     void tick();  // advance timelines, run actions, onEnterFrame
-    void render();
+    void render(bool clear = true);
     void queueFrameActions(const MC& mc);
     void runActionQueue();
     double timeMs() const;
