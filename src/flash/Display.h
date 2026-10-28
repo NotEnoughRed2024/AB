@@ -79,9 +79,10 @@ public:
 
 class Shape : public DisplayObject {
 public:
-    Shape(Library* l, int img) : DisplayObject(KShape), lib(l), image(img) {}
+    Shape(Library* l, int img, int chr = -1) : DisplayObject(KShape), lib(l), image(img), charId(chr) {}
     Library* lib;
     int image;
+    int charId;
     Rect localBounds() const override { return lib->imageBounds(image); }
 };
 
@@ -176,6 +177,24 @@ public:
     void addChild(std::shared_ptr<DisplayObject> d, int depth);
     int nextHighestDepth() const;
 
+    // flash drawing API (lines only - all the game uses)
+    struct Stroke {
+        double thickness = 0;
+        unsigned color = 0;
+        double alpha = 1;
+        std::vector<Point> pts;
+    };
+    std::vector<Stroke> strokes;
+    Stroke pen;
+    bool penSet = false;
+    void clear() { strokes.clear(); penSet = false; pen.pts.clear(); }
+    void lineStyle(double thickness, unsigned color = 0, double alpha = 100);
+    void moveTo(double x, double y);
+    void lineTo(double x, double y);
+
+    // MovieClipLoader.loadClip: become another library's main timeline
+    void loadRoot(Library* other);
+
     Rect localBounds() const override;
     bool hitTest(double gx, double gy, bool shapeFlag = false) const;
     bool hitTestClip(const MovieClip* other) const;
@@ -195,7 +214,13 @@ private:
 // BitmapData lives on the GPU as a render target; pixel-level operations read it back.
 class BitmapData {
 public:
-    BitmapData(Stage* s, int w, int h, bool transparent, unsigned fillARGB);
+    BitmapData(Stage* s, int w, int h, bool transparent, unsigned fillARGB, bool soft = false);
+    // soft bitmaps live in CPU memory at 1:1 and rasterise vector shapes exactly like Flash's
+    // 4x4 supersampled renderer; the game uses them where it reads pixels back (level generation).
+    bool soft = false;
+    std::vector<uint32_t> cpu;  // ARGB (not premultiplied), soft bitmaps only
+    std::vector<uint8_t> softMask;  // optional: only rasterise pixels whose mask byte is set
+    unsigned getPixel(int x, int y) { return getPixel32(x, y) & 0xFFFFFF; }
     ~BitmapData();
     int width, height;
     bool transparent;

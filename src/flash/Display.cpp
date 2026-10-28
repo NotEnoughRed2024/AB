@@ -142,7 +142,7 @@ std::shared_ptr<DisplayObject> MovieClip::instantiate(const Placement& p) {
     switch (c->kind) {
         case Character::Shape:
         case Character::Bitmap:
-            obj = std::make_shared<Shape>(lib, c->image);
+            obj = std::make_shared<Shape>(lib, c->image, p.character);
             break;
         case Character::Sprite: {
             auto mc = std::make_shared<MovieClip>(lib, c);
@@ -397,8 +397,58 @@ TF MovieClip::field(const std::string& n) const {
     return nullptr;
 }
 
+void MovieClip::lineStyle(double t, unsigned col, double a) {
+    if (penSet && pen.pts.size() > 1) strokes.push_back(pen);
+    Point last = pen.pts.empty() ? Point{0, 0} : pen.pts.back();
+    pen = Stroke();
+    pen.thickness = t;
+    pen.color = col;
+    pen.alpha = a / 100.0;
+    pen.pts.push_back(last);
+    penSet = true;
+}
+
+void MovieClip::moveTo(double px, double py) {
+    if (penSet && pen.pts.size() > 1) strokes.push_back(pen);
+    Stroke s = pen;
+    s.pts.clear();
+    s.pts.push_back({px, py});
+    pen = s;
+}
+
+void MovieClip::lineTo(double px, double py) {
+    if (pen.pts.empty()) pen.pts.push_back({0, 0});
+    pen.pts.push_back({px, py});
+}
+
+void MovieClip::loadRoot(Library* other) {
+    lib = other;
+    static std::unordered_map<Library*, Character> roots;
+    auto it = roots.find(other);
+    if (it == roots.end()) {
+        Character c;
+        c.kind = Character::Sprite;
+        c.frames = other->rootFrames;
+        it = roots.emplace(other, std::move(c)).first;
+    }
+    def = &it->second;
+    for (auto& [d, ch] : children) {
+        ch->removed = true;
+        ch->parent = nullptr;
+    }
+    children.clear();
+    frame = 1;
+    playing = true;
+    applyFrame(1);
+    constructed = true;
+    Stage::get()->queueFrameActions(std::static_pointer_cast<MovieClip>(shared_from_this()));
+}
+
 Rect MovieClip::localBounds() const {
     Rect r;
+    for (auto& st : strokes)
+        for (auto& p : st.pts) r.add(p.x, p.y);
+    for (auto& p : pen.pts) r.add(p.x, p.y);
     for (auto& [d, c] : children) {
         if (!c->visible && c->kind != KClip) continue;
         Rect cb = c->localBounds();

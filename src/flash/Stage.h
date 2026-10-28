@@ -28,6 +28,7 @@ public:
     int width, height;  // logical stage size (400x360)
     double fps;
     double viewScale = 2;  // window pixels per logical pixel
+    bool customBlend = true;  // false on renderers without SDL_ComposeCustomBlendMode support (software)
     double viewX = 0, viewY = 0;
     MC root;
     std::unordered_map<std::string, std::unique_ptr<Library>> libraries;
@@ -80,6 +81,7 @@ private:
                       const Matrix& m, const ColorTransform& ct, Blend blend, bool premulTarget,
                       std::map<int, std::shared_ptr<DisplayObject>>::iterator& resumeIt);
     void renderText(TextField* tf, const Matrix& m, const ColorTransform& ct, Blend blend);
+    void drawStrokes(const std::vector<MovieClip::Stroke>& strokes, const Matrix& m, const ColorTransform& ct, Blend blend);
     void collectEnterFrame(MovieClip* mc, std::vector<MC>& out);
     MC findInteractive(MovieClip* mc, double gx, double gy);
     Uint64 startTicks;

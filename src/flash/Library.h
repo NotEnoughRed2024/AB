@@ -2,6 +2,7 @@
 #pragma once
 #include <SDL3/SDL.h>
 
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -102,6 +103,21 @@ struct Font {
     std::unordered_map<unsigned, int> byCode;
 };
 
+// Vector outlines (only for shapes the game rasterises on the CPU, e.g. level-generation brushes)
+struct VecPaint {
+    enum Type { Solid, Linear, Radial } type = Solid;
+    double r = 0, g = 0, b = 0, a = 255;
+    Matrix matrix;  // gradient space -> shape space (px)
+    std::vector<std::pair<double, std::array<double, 4>>> stops;  // ratio 0..255, rgba
+    int spread = 0;
+    void colorAt(double x, double y, double out[4]) const;
+};
+struct VecFill {
+    VecPaint paint;
+    std::vector<std::vector<double>> polys;  // closed polygons, flat x,y (px)
+    Rect bounds;
+};
+
 struct Character {
     enum Kind { None, Shape, Bitmap, Sprite, EditText, FontRef } kind = None;
     int image = -1;                 // Shape / Bitmap
@@ -127,6 +143,11 @@ public:
     std::vector<Frame> rootFrames;
     std::string name;
 
+    const std::vector<VecFill>* vectorShape(int charId) const {
+        auto it = vectors.find(charId);
+        return it == vectors.end() ? nullptr : &it->second;
+    }
+
     // logical-pixel bounds of an image (shape space)
     Rect imageBounds(int i) const;
 
@@ -138,6 +159,7 @@ private:
     std::unordered_map<int, Character> chars;
     std::unordered_map<std::string, int> exports;
     std::unordered_map<int, Font> fonts;
+    std::unordered_map<int, std::vector<VecFill>> vectors;
 };
 
 }  // namespace flash

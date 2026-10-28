@@ -475,31 +475,154 @@ def rasterise(images):
 
 
 def pack(images, page_size):
-    """Simple shelf packer. Sets im['page'], im['x'], im['y']. Returns page count."""
-    order = sorted(range(len(images)), key=lambda i: -images[i]['h'])
-    pages = 0
-    x = y = shelf_h = 0
-    started = False
-    for i in order:
-        im = images[i]
-        w, h = im['w'], im['h']
+    """Skyline bottom-left packer. Sets im['page'], im['x'], im['y']. Returns page count."""
+    order = sorted(range(len(images)), key=lambda i: (-images[i]['h'], -images[i]['w']))
+    pages = []  # each page: skyline list of [x, y, w]
+
+    def fit(sky, w, h):
+        best = None
+        for i in range(len(sky)):
+            x = sky[i][0]
+            if x + w > page_size:
+                break
+            y = 0
+            rem = w
+            j = i
+            while rem > 0:
+                y = max(y, sky[j][1])
+                rem -= sky[j][2]
+                j += 1
+                if rem > 0 and j >= len(sky):
+                    y = None
+                    break
+            if y is None or y + h > page_size:
+                continue
+            if best is None or y < best[1] or (y == best[1] and x < best[0]):
+                best = (x, y, i)
+        return best
+
+    def place(sky, x, y, w, h, i):
+        sky.insert(i, [x, y + h, w])
+        k = i + 1
+        while k < len(sky):
+            seg = sky[k]
+            if seg[0] < x + w:
+                shrink = x + w - seg[0]
+                seg[0] += shrink
+                seg[2] -= shrink
+                if seg[2] <= 0:
+                    sky.pop(k)
+                    continue
+            break
+        k = 0
+        while k < len(sky) - 1:  # merge equal heights
+            if sky[k][1] == sky[k + 1][1]:
+                sky[k][2] += sky[k + 1][2]
+                sky.pop(k + 1)
+            else:
+                k += 1
+
+    for idx in order:
+        im = images[idx]
+        w, h = im['w'] + 1, im['h'] + 1  # 1px gutter against bilinear bleeding
         if w > page_size or h > page_size:
             raise ValueError('image %r too large (%dx%d)' % (im['key'], w, h))
-        if not started:
-            pages, x, y, shelf_h, started = 1, 0, 0, 0, True
-        if x + w > page_size:
-            x = 0
-            y += shelf_h
-            shelf_h = 0
-        if y + h > page_size:
-            pages += 1
-            x = y = shelf_h = 0
-        im['page'] = pages - 1
-        im['x'] = x
-        im['y'] = y
-        x += w
-        shelf_h = max(shelf_h, h)
-    return pages
+        for pi, sky in enumerate(pages):
+            f = fit(sky, w, h)
+            if f:
+                break
+        else:
+            pages.append([[0, 0, page_size]])
+            pi = len(pages) - 1
+            f = fit(pages[pi], w, h)
+        x, y, i = f
+        place(pages[pi], x, y, w, h, i)
+        im['page'], im['x'], im['y'] = pi, x, y
+    return len(pages)
+
+
+def flatten_contours(edges, steps=8):
+    """Directed edges -> list of closed polygons (flat lists of x,y in px)."""
+    path = edge_path(edges)  # reuse chaining, then parse back
+    polys = []
+    cur = None
+    toks = path.split()
+    i = 0
+    px = py = 0
+    while i < len(toks):
+        t = toks[i]
+        cmd, rest = t[0], t[1:]
+        if cmd == 'M':
+            cur = []
+            polys.append(cur)
+            px, py = float(rest), float(toks[i + 1])
+            cur += [px / 20, py / 20]
+            i += 2
+        elif cmd == 'L':
+            px, py = float(rest), float(toks[i + 1])
+            cur += [px / 20, py / 20]
+            i += 2
+        elif cmd == 'Q':
+            cx, cy, x1, y1 = float(rest), float(toks[i + 1]), float(toks[i + 2]), float(toks[i + 3])
+            for k in range(1, steps + 1):
+                t2 = k / steps
+                a = (1 - t2) ** 2
+                b = 2 * (1 - t2) * t2
+                c = t2 * t2
+                cur += [(a * px + b * cx + c * x1) / 20, (a * py + b * cy + c * y1) / 20]
+            px, py = x1, y1
+            i += 4
+        elif cmd == 'Z':
+            i += 1
+        else:
+            i += 1
+    return [[round(v, 3) for v in p] for p in polys if len(p) >= 6]
+
+
+def vector_shapes(swf, export_names):
+    """Collect vector outlines for shapes reachable from the given exports (CPU rasterisation in-game)."""
+    todo = [swf.exports[n] for n in export_names if n in swf.exports]
+    seen = set()
+    out = {}
+    while todo:
+        cid = todo.pop()
+        if cid in seen:
+            continue
+        seen.add(cid)
+        c = swf.chars.get(cid)
+        if not c:
+            continue
+        if c['kind'] == 'sprite':
+            for f in c['frames']:
+                for op, p in f['ops']:
+                    if op == 'place' and 'char' in p:
+                        todo.append(p['char'])
+        elif c['kind'] == 'shape':
+            fills = []
+            for g in c['groups']:
+                per_fill = {}
+                for f0, f1, ln, p0, cc, p1 in g['edges']:
+                    if f1:
+                        per_fill.setdefault(f1, []).append((p0, cc, p1))
+                    if f0:
+                        per_fill.setdefault(f0, []).append((p1, cc, p0))
+                for fi in sorted(per_fill):
+                    if fi - 1 >= len(g['fills']):
+                        continue
+                    fs = g['fills'][fi - 1]
+                    paint = {'type': fs['type']}
+                    if fs['type'] == 'solid':
+                        paint['color'] = list(fs['color'])
+                    elif fs['type'] in ('linear', 'radial', 'focal'):
+                        m = fs['matrix']
+                        paint['matrix'] = [m[0], m[1], m[2], m[3], m[4] / 20, m[5] / 20]
+                        paint['stops'] = [[r, list(col)] for r, col in fs['gradient']['stops']]
+                        paint['spread'] = fs['gradient']['spread']
+                    else:
+                        paint = {'type': 'solid', 'color': [128, 128, 128, 255]}
+                    fills.append({'paint': paint, 'polys': flatten_contours(per_fill[fi])})
+            out[cid] = fills
+    return out
 
 
 def main():
@@ -509,6 +632,7 @@ def main():
     ap.add_argument('--scale', type=float, default=2.0)
     ap.add_argument('--page', type=int, default=4096)
     ap.add_argument('--name', default='gfx')
+    ap.add_argument('--vector', default='', help='comma separated exports whose shapes also get vector outlines')
     a = ap.parse_args()
 
     from PIL import Image
@@ -545,6 +669,7 @@ def main():
         'fonts': {str(k): v for k, v in lib.fonts.items()},
         'exports': s.exports,
         'root': lib.compile_sprite({'frames': s.root, 'frameCount': len(s.root)})['frames'],
+        'vectors': {str(k): v for k, v in vector_shapes(s, [n for n in a.vector.split(',') if n]).items()},
     }
     with open(os.path.join(a.out, '%s.json' % a.name), 'w') as f:
         json.dump(lib_json, f, separators=(',', ':'))

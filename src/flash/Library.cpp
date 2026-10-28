@@ -1,5 +1,7 @@
 #include "Library.h"
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 
@@ -216,6 +218,38 @@ bool Library::load(SDL_Renderer* r, const std::string& dir, const std::string& n
         fonts[std::stoi(it.key())] = std::move(f);
     }
     if (j.contains("root")) rootFrames = parseFrames(j["root"]);
+    if (j.contains("vectors")) {
+        for (auto it = j["vectors"].begin(); it != j["vectors"].end(); ++it) {
+            std::vector<VecFill> fills;
+            for (const auto& f : it.value()) {
+                VecFill vf;
+                const auto& p = f["paint"];
+                std::string t = p["type"];
+                if (t == "solid") {
+                    vf.paint.type = VecPaint::Solid;
+                    vf.paint.r = p["color"][0];
+                    vf.paint.g = p["color"][1];
+                    vf.paint.b = p["color"][2];
+                    vf.paint.a = p["color"][3];
+                } else {
+                    vf.paint.type = (t == "linear") ? VecPaint::Linear : VecPaint::Radial;
+                    const auto& m = p["matrix"];
+                    vf.paint.matrix = Matrix::make(m[0], m[1], m[2], m[3], m[4], m[5]);
+                    for (const auto& st : p["stops"])
+                        vf.paint.stops.push_back({(double)st[0], {(double)st[1][0], (double)st[1][1], (double)st[1][2], (double)st[1][3]}});
+                    vf.paint.spread = p.value("spread", 0);
+                }
+                for (const auto& poly : f["polys"]) {
+                    std::vector<double> pts;
+                    for (const auto& v : poly) pts.push_back(v);
+                    for (size_t k = 0; k + 1 < pts.size(); k += 2) vf.bounds.add(pts[k], pts[k + 1]);
+                    vf.polys.push_back(std::move(pts));
+                }
+                fills.push_back(std::move(vf));
+            }
+            vectors[std::stoi(it.key())] = std::move(fills);
+        }
+    }
     SDL_Log("Library %s: %zu images, %zu pages, %zu chars, %zu exports, %zu fonts", nm.c_str(), images.size(),
             pages.size(), chars.size(), exports.size(), fonts.size());
     return true;
@@ -252,6 +286,37 @@ const Font* Library::fontByName(const std::string& n, bool bold) const {
         }
     }
     return best;
+}
+
+void VecPaint::colorAt(double x, double y, double out[4]) const {
+    if (type == Solid || stops.empty()) {
+        out[0] = r; out[1] = g; out[2] = b; out[3] = a;
+        return;
+    }
+    Point p = matrix.inverted().apply(x, y);  // into gradient square (-819.2 .. 819.2)
+    double t;
+    if (type == Linear) t = (p.x / 819.2 + 1) * 0.5;
+    else t = std::sqrt(p.x * p.x + p.y * p.y) / 819.2;
+    if (spread == 1) {  // reflect
+        t = std::fmod(std::fabs(t), 2.0);
+        if (t > 1) t = 2 - t;
+    } else if (spread == 2) {  // repeat
+        t = t - std::floor(t);
+    }
+    t = std::clamp(t, 0.0, 1.0) * 255.0;
+    if (t <= stops.front().first) {
+        for (int i = 0; i < 4; i++) out[i] = stops.front().second[i];
+        return;
+    }
+    for (size_t i = 1; i < stops.size(); i++) {
+        if (t <= stops[i].first) {
+            double span = stops[i].first - stops[i - 1].first;
+            double k = span > 0 ? (t - stops[i - 1].first) / span : 0;
+            for (int c = 0; c < 4; c++) out[c] = stops[i - 1].second[c] + (stops[i].second[c] - stops[i - 1].second[c]) * k;
+            return;
+        }
+    }
+    for (int i = 0; i < 4; i++) out[i] = stops.back().second[i];
 }
 
 Rect Library::imageBounds(int i) const {

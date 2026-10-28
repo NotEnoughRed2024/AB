@@ -1,4 +1,4 @@
 build/
-assets/generated/
+build-*/
 *.swf
 __pycache__/

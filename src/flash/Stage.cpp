@@ -17,6 +17,17 @@ Stage::Stage(SDL_Window* w, SDL_Renderer* r, int wd, int ht, double f)
     root = std::make_shared<MovieClip>(nullptr, nullptr);
     root->name = "_root";
     root->constructed = true;
+    // probe custom blend mode support (the software renderer has none)
+    if (SDL_Texture* t = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 1, 1)) {
+        SDL_BlendMode m = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDFACTOR_ONE,
+                                                     SDL_BLENDOPERATION_REV_SUBTRACT, SDL_BLENDFACTOR_ZERO,
+                                                     SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD);
+        customBlend = SDL_SetTextureBlendMode(t, m);
+        SDL_DestroyTexture(t);
+    }
+    if (!customBlend)
+        SDL_Log("Renderer '%s' has no custom blend modes: Flash colour effects will be approximated",
+                SDL_GetRendererName(r));
 }
 
 Stage::~Stage() {
@@ -263,15 +274,30 @@ void Stage::drawTexture(SDL_Texture* t, double w, double h, const Matrix& m, con
     SDL_RenderGeometry(renderer, t, v, 4, idx, 6);
 }
 
-void Stage::drawImage(Library* lib, int image, const Matrix& m, const ColorTransform& ct, Blend blend) {
+void Stage::drawImage(Library* lib, int image, const Matrix& m, const ColorTransform& ct0, Blend blend) {
     const Image& im = lib->image(image);
     if (im.w <= 1 && im.h <= 1) return;
     double s = lib->scale;
     // local rect in logical units: origin at (-ox/s, -oy/s)
     Matrix lm = m * Matrix::make(1.0 / s, 0, 0, 1.0 / s, -im.ox / s, -im.oy / s);
     SDL_FRect src{(float)im.x, (float)im.y, (float)im.w, (float)im.h};
+    ColorTransform ct = ct0;
+    if (!customBlend) {
+        // no silhouette/subtract passes available: fold offsets into the multiplier, exact for white art
+        // (which is what the game tints), approximate otherwise
+        auto fold = [](double& mult, double& add) {
+            if (add < 0) mult = std::max(0.0, mult * (1 + add / 255.0));
+            else if (add > 0) mult = mult + add / 255.0;
+            add = 0;
+        };
+        fold(ct.rm, ct.ra);
+        fold(ct.gm, ct.ga);
+        fold(ct.bm, ct.ba);
+        if (blend == Blend::Subtract || blend == Blend::Screen || blend == Blend::Lighten) blend = Blend::Add;
+        if (blend == Blend::Darken || blend == Blend::Erase || blend == Blend::Alpha) blend = Blend::Normal;
+    }
     drawTexture(lib->page(im.page), im.w, im.h, lm, ct, blend, false, &src);
-    if (ct.hasAdd() && ct.am > 0) {
+    if (customBlend && ct.hasAdd() && ct.am > 0) {
         SDL_Texture* sil = lib->silhouettePage(im.page);
         double r = ct.ra, g = ct.ga, b = ct.ba;
         double pr = std::max(0.0, r), pg = std::max(0.0, g), pb = std::max(0.0, b);
@@ -316,6 +342,10 @@ void Stage::renderObject(DisplayObject* o, const Matrix& m, const ColorTransform
             break;
         case DisplayObject::KClip: {
             auto* mc = static_cast<MovieClip*>(o);
+            if (!mc->strokes.empty() || mc->pen.pts.size() > 1) {
+                drawStrokes(mc->strokes, lm, lct, b);
+                if (mc->penSet && mc->pen.pts.size() > 1) drawStrokes({mc->pen}, lm, lct, b);
+            }
             for (auto it = mc->children.begin(); it != mc->children.end();) {
                 DisplayObject* c = it->second.get();
                 if (c->clipDepth > 0) {
@@ -461,6 +491,38 @@ void Stage::renderMasked(MovieClip* mc, std::map<int, std::shared_ptr<DisplayObj
     SDL_SetRenderTarget(renderer, prevT);
     SDL_FRect sr{0, 0, (float)aw, (float)ah};
     drawTexture(content, aw, ah, Matrix::make(1, 0, 0, 1, ax, ay), ColorTransform(), Blend::Normal, true, &sr);
+}
+
+void Stage::drawStrokes(const std::vector<MovieClip::Stroke>& strokes, const Matrix& m, const ColorTransform& ct,
+                        Blend blend) {
+    double sc = std::sqrt(std::fabs(m.a * m.d - m.b * m.c));
+    for (const auto& st : strokes) {
+        if (st.pts.size() < 2) continue;
+        double r = ((st.color >> 16) & 255), g = ((st.color >> 8) & 255), b = (st.color & 255), a = st.alpha * 255;
+        ct.applyTo(r, g, b, a);
+        SDL_FColor col{clamp01(r / 255), clamp01(g / 255), clamp01(b / 255), clamp01(a / 255)};
+        double w = std::max(1.0, st.thickness * sc) * 0.5;  // half width in target pixels (hairline = 1px)
+        std::vector<SDL_Vertex> v;
+        std::vector<int> idx;
+        for (size_t i = 1; i < st.pts.size(); i++) {
+            Point p0 = m.apply(st.pts[i - 1].x, st.pts[i - 1].y), p1 = m.apply(st.pts[i].x, st.pts[i].y);
+            double dx = p1.x - p0.x, dy = p1.y - p0.y, len = std::sqrt(dx * dx + dy * dy);
+            if (len < 1e-6) continue;
+            double nx = -dy / len * w, ny = dx / len * w;
+            // extend ends slightly so consecutive segments overlap at joints
+            double ex = dx / len * w * 0.5, ey = dy / len * w * 0.5;
+            int base = (int)v.size();
+            v.push_back({{(float)(p0.x + nx - ex), (float)(p0.y + ny - ey)}, col, {0, 0}});
+            v.push_back({{(float)(p1.x + nx + ex), (float)(p1.y + ny + ey)}, col, {0, 0}});
+            v.push_back({{(float)(p1.x - nx + ex), (float)(p1.y - ny + ey)}, col, {0, 0}});
+            v.push_back({{(float)(p0.x - nx - ex), (float)(p0.y - ny - ey)}, col, {0, 0}});
+            int q[6] = {base, base + 1, base + 2, base, base + 2, base + 3};
+            idx.insert(idx.end(), q, q + 6);
+        }
+        if (v.empty()) continue;
+        SDL_SetRenderDrawBlendMode(renderer, sdlBlend(blend, false));
+        SDL_RenderGeometry(renderer, nullptr, v.data(), (int)v.size(), idx.data(), (int)idx.size());
+    }
 }
 
 void Stage::render() {

@@ -1,0 +1,3961 @@
+{
+"zones": [
+{
+"name": "Moltear",
+"pos": [
+-55,
+34,
+7
+],
+"col": 11141188,
+"pal": [
+[
+100,
+100,
+150,
+55,
+55,
+105
+],
+[
+100,
+100,
+100,
+105,
+55,
+55
+]
+]
+},
+{
+"name": "Soupaline",
+"pos": [
+-7,
+1,
+2
+],
+"col": 4473992,
+"pal": [
+[
+40,
+0,
+200,
+20,
+20,
+20
+],
+[
+20,
+200,
+40,
+20,
+40,
+20
+]
+]
+},
+{
+"name": "Lycans",
+"pos": [
+1,
+14,
+8
+],
+"col": 11167266,
+"pal": [
+[
+100,
+100,
+0,
+155,
+155,
+40
+]
+]
+},
+{
+"name": "Samosa",
+"pos": [
+412,
+93,
+11
+],
+"col": 11167266,
+"pal": [
+[
+55,
+55,
+55,
+200,
+200,
+200
+]
+]
+},
+{
+"name": "Tiboon",
+"pos": [
+9,
+-10,
+2
+],
+"col": 11167266,
+"pal": [
+[
+55,
+55,
+55,
+200,
+200,
+200
+]
+]
+},
+{
+"name": "Balixt",
+"pos": [
+-9,
+-39,
+5
+],
+"col": 8930406,
+"pal": [
+[
+40,
+30,
+10,
+100,
+200,
+50
+]
+]
+},
+{
+"name": "Karbonis",
+"pos": [
+27,
+6,
+0
+],
+"col": 11176072,
+"pal": [
+[
+170,
+40,
+70,
+80,
+60,
+70
+],
+[
+180,
+180,
+20,
+70,
+70,
+40
+]
+]
+},
+{
+"name": "Spignysos",
+"pos": [
+-36,
+-10,
+5
+],
+"col": 2237064,
+"pal": [
+[
+20,
+40,
+150,
+20,
+20,
+100
+],
+[
+0,
+175,
+175,
+50,
+75,
+75
+]
+]
+},
+{
+"name": "Pofiak",
+"pos": [
+-18,
+85,
+3
+],
+"col": 1148979,
+"pal": [
+[
+20,
+80,
+60,
+20,
+150,
+80
+],
+[
+150,
+150,
+20,
+100,
+100,
+0
+]
+]
+},
+{
+"name": "Senegarde",
+"pos": [
+93,
+48,
+5
+],
+"col": 8912998,
+"pal": [
+[
+150,
+20,
+80,
+100,
+80,
+100
+],
+[
+50,
+20,
+200,
+150,
+50,
+50
+]
+]
+},
+{
+"name": "Douriv",
+"pos": [
+-84,
+-102,
+7
+],
+"col": 8930457,
+"pal": [
+[
+200,
+20,
+20,
+100,
+20,
+20
+],
+[
+20,
+200,
+20,
+20,
+100,
+20
+],
+[
+20,
+20,
+200,
+20,
+20,
+100
+]
+]
+},
+{
+"name": "Grimorn",
+"pos": [
+81,
+-122,
+4
+],
+"col": 12303291,
+"pal": [
+[
+60,
+60,
+60,
+60,
+60,
+60
+]
+]
+},
+{
+"name": "D-tritus",
+"pos": [
+247,
+-44,
+2
+],
+"col": 5592405,
+"pal": [
+[
+30,
+30,
+0,
+150,
+150,
+60
+]
+]
+},
+{
+"name": "Asteroide",
+"pos": [
+0,
+0,
+0
+],
+"col": 5592405,
+"pal": [
+[
+30,
+30,
+0,
+160,
+120,
+60
+],
+[
+250,
+200,
+0,
+50,
+30,
+0
+]
+]
+},
+{
+"name": "Nalikors",
+"pos": [
+67,
+153,
+4
+],
+"col": 5614216,
+"pal": [
+[
+0,
+0,
+40,
+0,
+50,
+210
+],
+[
+0,
+40,
+40,
+0,
+210,
+210
+]
+]
+},
+{
+"name": "Holovan",
+"pos": [
+-150,
+111,
+6
+],
+"col": 11158664,
+"pal": [
+[
+100,
+0,
+40,
+250,
+50,
+210
+],
+[
+0,
+40,
+40,
+250,
+40,
+40
+]
+]
+},
+{
+"name": "Khorlan",
+"pos": [
+180,
+-191,
+5
+],
+"col": 8956552,
+"pal": [
+[
+0,
+100,
+0,
+150,
+150,
+150
+],
+[
+150,
+150,
+150,
+100,
+50,
+0
+]
+]
+},
+{
+"name": "Cilorile",
+"pos": [
+78,
+-23,
+5
+],
+"col": 8868462,
+"pal": [
+[
+150,
+80,
+100,
+100,
+100,
+100
+],
+[
+100,
+200,
+200,
+50,
+50,
+50
+]
+]
+},
+{
+"name": "Tarciturne",
+"pos": [
+192,
+115,
+3
+],
+"col": 6728362,
+"pal": [
+[
+60,
+60,
+60,
+60,
+60,
+60
+]
+]
+},
+{
+"name": "Chagarina",
+"pos": [
+-320,
+-574,
+4
+],
+"col": 12307648,
+"pal": [
+[
+50,
+60,
+60,
+50,
+60,
+60
+]
+]
+},
+{
+"name": "Volcer",
+"pos": [
+-298,
+-149,
+8
+],
+"col": 8736938,
+"pal": [
+[
+20,
+20,
+60,
+90,
+60,
+60
+],
+[
+20,
+70,
+20,
+20,
+100,
+60
+]
+]
+},
+{
+"name": "Balmanch",
+"pos": [
+-340,
+362,
+5
+],
+"col": 13417335,
+"pal": [
+[
+0,
+0,
+0,
+120,
+120,
+120
+],
+[
+0,
+0,
+0,
+150,
+0,
+100
+]
+]
+},
+{
+"name": "Folket",
+"pos": [
+574,
+-254,
+3
+],
+"col": 2258858,
+"pal": [
+[
+0,
+50,
+100,
+0,
+50,
+150
+]
+]
+},
+{
+"name": "Terre",
+"pos": [
+8000,
+8100,
+3
+],
+"col": 2258858,
+"pal": [
+[
+0,
+50,
+100,
+0,
+50,
+150
+]
+]
+}
+],
+"holes": [
+[
+[
+-9,
+-7
+],
+[
+48,
+23
+]
+],
+[
+[
+-106,
+54
+],
+[
+62,
+-142
+]
+],
+[
+[
+5,
+-61
+],
+[
+-230,
+1
+]
+],
+[
+[
+-85,
+-232
+],
+[
+-19,
+143
+]
+],
+[
+[
+121,
+-50
+],
+[
+334,
+-162
+]
+]
+],
+"missions": [
+{
+"name": "mission_name_0",
+"desc": "mission_desc_0",
+"end": "mission_end_0",
+"startConditions": [],
+"conditions": [
+[
+0,
+0
+]
+],
+"startItem": [
+[
+0,
+4
+],
+[
+80,
+3
+]
+],
+"endItem": [
+[
+80,
+3
+]
+]
+},
+{
+"name": "mission_name_1",
+"desc": "mission_desc_1",
+"end": "mission_end_1",
+"startConditions": [
+[
+5,
+0
+]
+],
+"conditions": [
+[
+0,
+1,
+2,
+3
+]
+],
+"startItem": [
+[
+1,
+1
+],
+[
+2,
+1
+],
+[
+3,
+1
+]
+],
+"endItem": [
+[
+-8
+],
+[
+4,
+3
+]
+]
+},
+{
+"name": "mission_name_2",
+"desc": "mission_desc_2",
+"end": "mission_end_2",
+"startConditions": [
+[
+5,
+3
+]
+],
+"conditions": [
+[
+2,
+1
+]
+],
+"startItem": [],
+"endItem": [
+[
+-1,
+200
+],
+[
+-5,
+12
+]
+]
+},
+{
+"name": "mission_name_3",
+"desc": "mission_desc_3",
+"end": "mission_end_3",
+"startConditions": [
+[
+5,
+1
+]
+],
+"conditions": [
+[
+0,
+5
+]
+],
+"startItem": [
+[
+5,
+4
+]
+],
+"endItem": [
+[
+6,
+2
+],
+[
+-5,
+5
+]
+]
+},
+{
+"name": "mission_name_4",
+"desc": "mission_desc_4",
+"end": "mission_end_4",
+"startConditions": [
+[
+5,
+3
+]
+],
+"conditions": [
+[
+0,
+7
+],
+[
+0,
+8
+],
+[
+0,
+9
+],
+[
+0,
+10
+],
+[
+0,
+11
+],
+[
+0,
+12
+],
+[
+0,
+13
+]
+],
+"startItem": [
+[
+7,
+1
+],
+[
+8,
+1
+],
+[
+9,
+1
+],
+[
+10,
+1
+],
+[
+11,
+1
+],
+[
+12,
+1
+],
+[
+13,
+1
+]
+],
+"endItem": [
+[
+14,
+1
+],
+[
+7,
+0
+],
+[
+8,
+0
+],
+[
+9,
+0
+],
+[
+10,
+0
+],
+[
+11,
+0
+],
+[
+12,
+0
+],
+[
+13,
+0
+]
+]
+},
+{
+"name": "mission_name_5",
+"desc": null,
+"end": "mission_end_5",
+"startConditions": [
+[
+5,
+3
+]
+],
+"conditions": [
+[
+4,
+4,
+-4,
+7
+]
+],
+"startItem": [],
+"endItem": [
+[
+6,
+0
+],
+[
+-3
+]
+]
+},
+{
+"name": "mission_name_6",
+"desc": null,
+"end": "mission_end_6",
+"startConditions": [
+[
+5,
+0
+]
+],
+"conditions": [
+[
+0,
+15
+]
+],
+"startItem": [
+[
+15,
+4
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_7",
+"desc": "mission_desc_7",
+"end": "mission_end_7",
+"startConditions": [
+[
+5,
+6
+]
+],
+"conditions": [
+[
+0,
+16
+]
+],
+"startItem": [
+[
+16,
+4
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_8",
+"desc": null,
+"end": "mission_end_8",
+"startConditions": [
+[
+5,
+7
+]
+],
+"conditions": [
+[
+4,
+7,
+-10,
+5
+]
+],
+"startItem": [],
+"endItem": [
+[
+-5,
+10
+]
+]
+},
+{
+"name": "mission_name_9",
+"desc": "mission_desc_9",
+"end": "mission_end_9",
+"startConditions": [
+[
+5,
+120
+]
+],
+"conditions": [],
+"startItem": [],
+"endItem": []
+},
+{
+"name": "mission_name_10",
+"desc": "mission_desc_10",
+"end": "mission_end_10",
+"startConditions": [
+[
+5,
+14
+]
+],
+"conditions": [
+[
+3,
+-9,
+-39,
+12
+]
+],
+"startItem": [],
+"endItem": []
+},
+{
+"name": "mission_name_11",
+"desc": "mission_desc_11",
+"end": "mission_end_11",
+"startConditions": [
+[
+5,
+10
+]
+],
+"conditions": [
+[
+2,
+5
+]
+],
+"startItem": [],
+"endItem": [
+[
+-3
+]
+]
+},
+{
+"name": "mission_name_12",
+"desc": "mission_desc_12",
+"end": "mission_end_12",
+"startConditions": [
+[
+5,
+1
+]
+],
+"conditions": [
+[
+0,
+18
+]
+],
+"startItem": [
+[
+18,
+1
+]
+],
+"endItem": [
+[
+19,
+5
+],
+[
+20,
+5
+],
+[
+21,
+5
+],
+[
+22,
+5
+],
+[
+23,
+5
+],
+[
+24,
+5
+],
+[
+25,
+5
+],
+[
+26,
+5
+],
+[
+27,
+5
+],
+[
+28,
+5
+],
+[
+29,
+5
+],
+[
+30,
+5
+],
+[
+31,
+5
+],
+[
+32,
+5
+],
+[
+33,
+5
+],
+[
+34,
+5
+],
+[
+35,
+5
+],
+[
+36,
+5
+],
+[
+37,
+5
+],
+[
+38,
+5
+],
+[
+39,
+5
+],
+[
+40,
+5
+],
+[
+41,
+5
+],
+[
+42,
+5
+],
+[
+43,
+5
+],
+[
+44,
+5
+],
+[
+45,
+5
+],
+[
+46,
+5
+],
+[
+47,
+5
+],
+[
+48,
+5
+],
+[
+49,
+5
+],
+[
+50,
+5
+],
+[
+51,
+5
+],
+[
+52,
+5
+],
+[
+53,
+5
+],
+[
+54,
+5
+],
+[
+55,
+5
+],
+[
+56,
+5
+],
+[
+57,
+5
+]
+]
+},
+{
+"name": "mission_name_13",
+"desc": "mission_desc_13",
+"end": "mission_end_13",
+"startConditions": [
+[
+5,
+1
+]
+],
+"conditions": [
+[
+1,
+0
+]
+],
+"startItem": [],
+"endItem": [
+[
+58,
+3
+]
+]
+},
+{
+"name": "mission_name_14",
+"desc": "mission_desc_14",
+"end": "mission_end_14",
+"startConditions": [
+[
+5,
+15
+]
+],
+"conditions": [
+[
+0,
+61,
+62
+]
+],
+"startItem": [
+[
+61,
+1
+],
+[
+62,
+1
+]
+],
+"endItem": [
+[
+59,
+3
+]
+]
+},
+{
+"name": "mission_name_15",
+"desc": "mission_desc_15",
+"end": "mission_end_15",
+"startConditions": [
+[
+5,
+4
+]
+],
+"conditions": [
+[
+0,
+81
+]
+],
+"startItem": [
+[
+81,
+1
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_16",
+"desc": "mission_desc_16",
+"end": "mission_end_16",
+"startConditions": [
+[
+5,
+11
+]
+],
+"conditions": [
+[
+0,
+63,
+64,
+65,
+66,
+67,
+68,
+69
+]
+],
+"startItem": [
+[
+63,
+1
+],
+[
+64,
+1
+],
+[
+65,
+1
+],
+[
+66,
+1
+],
+[
+67,
+1
+],
+[
+68,
+1
+],
+[
+69,
+1
+]
+],
+"endItem": [
+[
+70,
+3
+]
+]
+},
+{
+"name": "mission_name_17",
+"desc": null,
+"end": "mission_end_17",
+"startConditions": [
+[
+5,
+0
+]
+],
+"conditions": [
+[
+0,
+71,
+72,
+73
+]
+],
+"startItem": [
+[
+71,
+5
+],
+[
+72,
+5
+],
+[
+73,
+5
+]
+],
+"endItem": [
+[
+74,
+2
+]
+]
+},
+{
+"name": "mission_name_18",
+"desc": null,
+"end": "mission_end_18",
+"startConditions": [
+[
+5,
+0
+]
+],
+"conditions": [
+[
+4,
+0,
+0,
+6
+]
+],
+"startItem": [],
+"endItem": [
+[
+-4
+],
+[
+-4
+],
+[
+-4
+]
+]
+},
+{
+"name": "mission_name_19",
+"desc": null,
+"end": "mission_end_19",
+"startConditions": [
+[
+0,
+80
+]
+],
+"conditions": [
+[
+3,
+-10,
+-11,
+3
+],
+[
+0,
+80
+]
+],
+"startItem": [],
+"endItem": [
+[
+-7
+],
+[
+80,
+0
+],
+[
+-10,
+19
+]
+]
+},
+{
+"name": "mission_name_20",
+"desc": null,
+"end": "mission_end_20",
+"startConditions": [
+[
+5,
+8
+],
+[
+8,
+171
+]
+],
+"conditions": [
+[
+3,
+-58,
+36,
+9
+]
+],
+"startItem": [],
+"endItem": [
+[
+79,
+1
+]
+]
+},
+{
+"name": "mission_name_21",
+"desc": "mission_desc_21",
+"end": "mission_end_21",
+"startConditions": [
+[
+5,
+14
+]
+],
+"conditions": [
+[
+0,
+75
+]
+],
+"startItem": [
+[
+75,
+1
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_22",
+"desc": "mission_desc_22",
+"end": "mission_end_22",
+"startConditions": [
+[
+5,
+11
+]
+],
+"conditions": [
+[
+0,
+76
+]
+],
+"startItem": [
+[
+76,
+1
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_23",
+"desc": "mission_name_23",
+"end": "mission_end_23",
+"startConditions": [
+[
+0,
+86
+],
+[
+9,
+100
+],
+[
+5,
+22
+]
+],
+"conditions": [
+[
+0,
+77
+]
+],
+"startItem": [
+[
+77,
+1
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_24",
+"desc": null,
+"end": "mission_end_24",
+"startConditions": [
+[
+0,
+80
+]
+],
+"conditions": [
+[
+3,
+48,
+13,
+5
+],
+[
+0,
+80
+]
+],
+"startItem": [],
+"endItem": [
+[
+-7
+],
+[
+80,
+0
+],
+[
+-10,
+24
+]
+]
+},
+{
+"name": "mission_name_25",
+"desc": null,
+"end": "mission_end_25",
+"startConditions": [
+[
+0,
+80
+]
+],
+"conditions": [
+[
+3,
+-22,
+43,
+6
+],
+[
+0,
+80
+]
+],
+"startItem": [],
+"endItem": [
+[
+-7
+],
+[
+80,
+0
+],
+[
+-10,
+25
+]
+]
+},
+{
+"name": "mission_name_26",
+"desc": null,
+"end": "mission_end_26",
+"startConditions": [
+[
+0,
+80
+]
+],
+"conditions": [
+[
+3,
+-67,
+-32,
+7
+],
+[
+0,
+80
+]
+],
+"startItem": [],
+"endItem": [
+[
+-7
+],
+[
+80,
+0
+],
+[
+-10,
+26
+]
+]
+},
+{
+"name": "mission_name_27",
+"desc": "mission_desc_27",
+"end": "mission_end_27",
+"startConditions": [
+[
+5,
+21
+]
+],
+"conditions": [
+[
+0,
+82,
+83,
+84,
+85
+]
+],
+"startItem": [
+[
+82,
+5
+],
+[
+83,
+5
+],
+[
+84,
+5
+],
+[
+85,
+5
+]
+],
+"endItem": [
+[
+60,
+2
+]
+]
+},
+{
+"name": "mission_name_28",
+"desc": "mission_desc_28",
+"end": "mission_end_28",
+"startConditions": [
+[
+8,
+95
+],
+[
+8,
+86
+],
+[
+4,
+27,
+6,
+90
+]
+],
+"conditions": [
+[
+4,
+27,
+6,
+110
+],
+[
+8,
+95
+]
+],
+"startItem": [],
+"endItem": [
+[
+86,
+2
+],
+[
+-11
+],
+[
+-10,
+28
+]
+]
+},
+{
+"name": "mission_name_29",
+"desc": "mission_desc_29",
+"end": "mission_end_29",
+"startConditions": [
+[
+4,
+7,
+-10,
+8
+],
+[
+0,
+16
+]
+],
+"conditions": [
+[
+0,
+87,
+88,
+89,
+90
+]
+],
+"startItem": [
+[
+87,
+1
+],
+[
+88,
+1
+],
+[
+89,
+1
+],
+[
+90,
+1
+]
+],
+"endItem": [
+[
+91,
+2
+]
+]
+},
+{
+"name": "mission_name_30",
+"desc": "mission_desc_30",
+"end": "mission_end_30",
+"startConditions": [
+[
+5,
+29
+],
+[
+5,
+5
+]
+],
+"conditions": [
+[
+1,
+28
+]
+],
+"startItem": [],
+"endItem": [
+[
+-4
+]
+]
+},
+{
+"name": "mission_name_31",
+"desc": "mission_desc_31",
+"end": "mission_end_31",
+"startConditions": [
+[
+8,
+92
+],
+[
+8,
+86
+],
+[
+5,
+30
+],
+[
+4,
+-12,
+-1,
+60
+]
+],
+"conditions": [
+[
+0,
+92
+]
+],
+"startItem": [
+[
+92,
+6
+]
+],
+"endItem": [
+[
+-5,
+20
+]
+]
+},
+{
+"name": "mission_name_32",
+"desc": "mission_desc_32",
+"end": "mission_end_32",
+"startConditions": [
+[
+8,
+92
+],
+[
+0,
+86
+],
+[
+5,
+30
+],
+[
+4,
+-12,
+-1,
+70
+]
+],
+"conditions": [
+[
+0,
+93
+]
+],
+"startItem": [
+[
+93,
+6
+]
+],
+"endItem": [
+[
+92,
+2
+]
+]
+},
+{
+"name": "mission_name_33",
+"desc": "mission_desc_33",
+"end": "mission_end_33",
+"startConditions": [
+[
+0,
+86
+],
+[
+4,
+27,
+6,
+130
+]
+],
+"conditions": [
+[
+3,
+67,
+153,
+7
+]
+],
+"startItem": [],
+"endItem": []
+},
+{
+"name": "mission_name_34",
+"desc": "mission_desc_34",
+"end": "mission_end_34",
+"startConditions": [
+[
+0,
+86
+],
+[
+3,
+67,
+153,
+5
+]
+],
+"conditions": [
+[
+0,
+94
+]
+],
+"startItem": [
+[
+94,
+6
+]
+],
+"endItem": [
+[
+-9
+]
+]
+},
+{
+"name": "mission_name_35",
+"desc": "mission_desc_35",
+"end": "mission_end_35",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+63
+]
+],
+"conditions": [
+[
+5,
+120
+]
+],
+"startItem": [
+[
+-5,
+20
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_36",
+"desc": "mission_desc_36",
+"end": "mission_end_36",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+52
+]
+],
+"conditions": [
+[
+2,
+14
+]
+],
+"startItem": [
+[
+95,
+2
+],
+[
+-10,
+28
+]
+],
+"endItem": [
+[
+-1,
+1500
+]
+]
+},
+{
+"name": "mission_name_37",
+"desc": "mission_desc_37",
+"end": "mission_end_37",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+100
+]
+],
+"conditions": [
+[
+0,
+96
+]
+],
+"startItem": [
+[
+96,
+1
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_38",
+"desc": "mission_desc_38",
+"end": "mission_end_38",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+87
+]
+],
+"conditions": [
+[
+0,
+97,
+98,
+99,
+100,
+101
+]
+],
+"startItem": [
+[
+97,
+5
+],
+[
+98,
+5
+],
+[
+99,
+5
+],
+[
+100,
+5
+],
+[
+101,
+5
+]
+],
+"endItem": [
+[
+78,
+2
+]
+]
+},
+{
+"name": "mission_name_39",
+"desc": "mission_desc_39",
+"end": "mission_end_39",
+"startConditions": [
+[
+0,
+86
+],
+[
+9,
+20
+]
+],
+"conditions": [
+[
+0,
+102,
+103,
+104,
+105,
+106,
+107,
+108,
+109
+]
+],
+"startItem": [
+[
+102,
+1
+],
+[
+103,
+1
+],
+[
+104,
+1
+],
+[
+105,
+1
+],
+[
+106,
+1
+],
+[
+107,
+1
+],
+[
+108,
+1
+],
+[
+109,
+1
+]
+],
+"endItem": [
+[
+110,
+1
+]
+]
+},
+{
+"name": "mission_name_40",
+"desc": "mission_desc_40",
+"end": "mission_end_40",
+"startConditions": [
+[
+0,
+86
+],
+[
+9,
+5
+]
+],
+"conditions": [
+[
+2,
+15
+]
+],
+"startItem": [],
+"endItem": [
+[
+112,
+6
+]
+]
+},
+{
+"name": "mission_name_41",
+"desc": "mission_desc_41",
+"end": "mission_end_41",
+"startConditions": [
+[
+5,
+30
+],
+[
+5,
+20
+]
+],
+"conditions": [
+[
+3,
+180,
+-191,
+6
+]
+],
+"startItem": [],
+"endItem": [
+[
+-3
+],
+[
+-5,
+50
+],
+[
+16,
+0
+]
+]
+},
+{
+"name": "mission_name_42",
+"desc": "mission_desc_42",
+"end": "mission_end_42",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+73
+]
+],
+"conditions": [
+[
+0,
+113
+]
+],
+"startItem": [
+[
+113,
+6
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_43",
+"desc": null,
+"end": "mission_end_43",
+"startConditions": [
+[
+5,
+5
+]
+],
+"conditions": [
+[
+0,
+114,
+115,
+116,
+117,
+118,
+119,
+120,
+121,
+122,
+123,
+124,
+125
+]
+],
+"startItem": [
+[
+114,
+6
+],
+[
+115,
+6
+],
+[
+116,
+6
+],
+[
+117,
+6
+],
+[
+118,
+6
+],
+[
+119,
+6
+],
+[
+120,
+6
+],
+[
+121,
+6
+],
+[
+122,
+6
+],
+[
+123,
+6
+],
+[
+124,
+6
+],
+[
+125,
+6
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_44",
+"desc": "mission_desc_44",
+"end": "mission_end_44",
+"startConditions": [
+[
+5,
+43
+]
+],
+"conditions": [
+[
+0,
+126
+]
+],
+"startItem": [
+[
+126,
+6
+]
+],
+"endItem": [
+[
+-6
+]
+]
+},
+{
+"name": "mission_name_45",
+"desc": "mission_desc_45",
+"end": "mission_end_45",
+"startConditions": [
+[
+8,
+86
+],
+[
+9,
+58
+]
+],
+"conditions": [
+[
+2,
+17
+]
+],
+"startItem": [],
+"endItem": [
+[
+127,
+2
+]
+]
+},
+{
+"name": "mission_name_46",
+"desc": null,
+"end": "mission_end_46",
+"startConditions": [
+[
+5,
+0
+]
+],
+"conditions": [
+[
+5,
+120
+]
+],
+"startItem": [
+[
+128,
+6
+],
+[
+129,
+6
+],
+[
+130,
+6
+],
+[
+131,
+6
+],
+[
+132,
+6
+],
+[
+133,
+6
+],
+[
+134,
+6
+],
+[
+135,
+6
+],
+[
+136,
+6
+],
+[
+137,
+6
+],
+[
+138,
+6
+],
+[
+139,
+6
+],
+[
+140,
+6
+],
+[
+141,
+6
+],
+[
+142,
+6
+],
+[
+143,
+6
+],
+[
+144,
+6
+],
+[
+145,
+6
+],
+[
+146,
+6
+],
+[
+147,
+6
+],
+[
+148,
+6
+],
+[
+149,
+6
+],
+[
+150,
+6
+],
+[
+151,
+6
+],
+[
+152,
+6
+],
+[
+153,
+6
+],
+[
+154,
+6
+],
+[
+155,
+6
+],
+[
+156,
+6
+],
+[
+157,
+6
+],
+[
+158,
+6
+],
+[
+159,
+6
+],
+[
+160,
+6
+],
+[
+161,
+6
+],
+[
+162,
+6
+],
+[
+163,
+6
+],
+[
+164,
+6
+],
+[
+165,
+6
+],
+[
+166,
+6
+],
+[
+167,
+6
+],
+[
+168,
+6
+],
+[
+169,
+6
+]
+],
+"endItem": []
+},
+{
+"name": "mission_name_41",
+"desc": "mission_desc_41",
+"end": "mission_end_41",
+"startConditions": [
+[
+5,
+30
+],
+[
+0,
+171
+]
+],
+"conditions": [
+[
+3,
+180,
+-191,
+6
+]
+],
+"startItem": [],
+"endItem": [
+[
+-3
+],
+[
+-5,
+50
+],
+[
+16,
+0
+]
+]
+}
+],
+"items": [
+{
+"x": 0,
+"y": 0,
+"fam": 0
+},
+{
+"x": 0,
+"y": -1,
+"fam": 0
+},
+{
+"x": -1,
+"y": 1,
+"fam": 0
+},
+{
+"x": 2,
+"y": 1,
+"fam": 0
+},
+{
+"x": 0,
+"y": 1,
+"fam": 0
+},
+{
+"x": 4,
+"y": -4,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -1,
+"y": 8,
+"fam": 0
+},
+{
+"x": 3,
+"y": 8,
+"fam": 0
+},
+{
+"x": -3,
+"y": 7,
+"fam": 0
+},
+{
+"x": 1,
+"y": 9,
+"fam": 0
+},
+{
+"x": -4,
+"y": 9,
+"fam": 0
+},
+{
+"x": -2,
+"y": 11,
+"fam": 0
+},
+{
+"x": 0,
+"y": 6,
+"fam": 0
+},
+{
+"x": -1,
+"y": 0,
+"fam": 0
+},
+{
+"x": 9,
+"y": -10,
+"fam": 0
+},
+{
+"x": 7,
+"y": -10,
+"fam": 0
+},
+{
+"x": 1,
+"y": 1,
+"fam": 0
+},
+{
+"x": -1,
+"y": -2,
+"fam": 1
+},
+{
+"x": -8,
+"y": -1,
+"fam": 1
+},
+{
+"x": 8,
+"y": -2,
+"fam": 1
+},
+{
+"x": 5,
+"y": 8,
+"fam": 1
+},
+{
+"x": -10,
+"y": -5,
+"fam": 1
+},
+{
+"x": 14,
+"y": 1,
+"fam": 1
+},
+{
+"x": 4,
+"y": 16,
+"fam": 1
+},
+{
+"x": -17,
+"y": 11,
+"fam": 1
+},
+{
+"x": 13,
+"y": -21,
+"fam": 1
+},
+{
+"x": 16,
+"y": 25,
+"fam": 1
+},
+{
+"x": -34,
+"y": -7,
+"fam": 1
+},
+{
+"x": 39,
+"y": -14,
+"fam": 1
+},
+{
+"x": -38,
+"y": 29,
+"fam": 1
+},
+{
+"x": -33,
+"y": -45,
+"fam": 1
+},
+{
+"x": 54,
+"y": 35,
+"fam": 1
+},
+{
+"x": -21,
+"y": -70,
+"fam": 1
+},
+{
+"x": -20,
+"y": 80,
+"fam": 1
+},
+{
+"x": 56,
+"y": -74,
+"fam": 1
+},
+{
+"x": 72,
+"y": 74,
+"fam": 1
+},
+{
+"x": -29,
+"y": 111,
+"fam": 1
+},
+{
+"x": -109,
+"y": -65,
+"fam": 1
+},
+{
+"x": 131,
+"y": 48,
+"fam": 1
+},
+{
+"x": -58,
+"y": -142,
+"fam": 1
+},
+{
+"x": 166,
+"y": 21,
+"fam": 1
+},
+{
+"x": -101,
+"y": 151,
+"fam": 1
+},
+{
+"x": 174,
+"y": -94,
+"fam": 1
+},
+{
+"x": 147,
+"y": 155,
+"fam": 1
+},
+{
+"x": -2,
+"y": -231,
+"fam": 1
+},
+{
+"x": -154,
+"y": 195,
+"fam": 1
+},
+{
+"x": -33,
+"y": -264,
+"fam": 1
+},
+{
+"x": 282,
+"y": 40,
+"fam": 1
+},
+{
+"x": -297,
+"y": 66,
+"fam": 1
+},
+{
+"x": 259,
+"y": -195,
+"fam": 1
+},
+{
+"x": -158,
+"y": 307,
+"fam": 1
+},
+{
+"x": -354,
+"y": -93,
+"fam": 1
+},
+{
+"x": 380,
+"y": -79,
+"fam": 1
+},
+{
+"x": -344,
+"y": 225,
+"fam": 1
+},
+{
+"x": -344,
+"y": -265,
+"fam": 1
+},
+{
+"x": 182,
+"y": -420,
+"fam": 1
+},
+{
+"x": -10,
+"y": 483,
+"fam": 1
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": 3,
+"y": 16,
+"fam": 0
+},
+{
+"x": -39,
+"y": -9,
+"fam": 0
+},
+{
+"x": 25,
+"y": -110,
+"fam": 2
+},
+{
+"x": 170,
+"y": -100,
+"fam": 2
+},
+{
+"x": 115,
+"y": 80,
+"fam": 2
+},
+{
+"x": -37,
+"y": 176,
+"fam": 2
+},
+{
+"x": -54,
+"y": 49,
+"fam": 2
+},
+{
+"x": -170,
+"y": -36,
+"fam": 2
+},
+{
+"x": -97,
+"y": -174,
+"fam": 2
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -58,
+"y": 30,
+"fam": 0
+},
+{
+"x": -51,
+"y": 37,
+"fam": 0
+},
+{
+"x": -54,
+"y": 40,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -54,
+"y": 32,
+"fam": 0
+},
+{
+"x": -532,
+"y": 123,
+"fam": 0
+},
+{
+"x": 450,
+"y": 826,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -60,
+"y": 36,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": 11,
+"y": -1,
+"fam": 0
+},
+{
+"x": 18,
+"y": -40,
+"fam": 4
+},
+{
+"x": -30,
+"y": 42,
+"fam": 4
+},
+{
+"x": 35,
+"y": -28,
+"fam": 4
+},
+{
+"x": 30,
+"y": 61,
+"fam": 4
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": 44,
+"y": -5,
+"fam": 0
+},
+{
+"x": 46,
+"y": -1,
+"fam": 0
+},
+{
+"x": 50,
+"y": -9,
+"fam": 0
+},
+{
+"x": 58,
+"y": -12,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": 76,
+"y": -20,
+"fam": 0
+},
+{
+"x": -7,
+"y": 2,
+"fam": 0
+},
+{
+"x": 64,
+"y": 154,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -2,
+"y": 0,
+"fam": 0
+},
+{
+"x": 303,
+"y": -60,
+"fam": 5
+},
+{
+"x": 340,
+"y": -112,
+"fam": 5
+},
+{
+"x": 281,
+"y": -76,
+"fam": 5
+},
+{
+"x": 284,
+"y": -15,
+"fam": 5
+},
+{
+"x": 350,
+"y": -44,
+"fam": 5
+},
+{
+"x": 21,
+"y": 118,
+"fam": 6
+},
+{
+"x": -41,
+"y": 93,
+"fam": 6
+},
+{
+"x": -83,
+"y": 19,
+"fam": 6
+},
+{
+"x": -80,
+"y": -20,
+"fam": 6
+},
+{
+"x": -36,
+"y": -84,
+"fam": 6
+},
+{
+"x": 103,
+"y": -73,
+"fam": 6
+},
+{
+"x": 134,
+"y": -21,
+"fam": 6
+},
+{
+"x": 81,
+"y": 102,
+"fam": 6
+},
+{
+"x": 67,
+"y": 152,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -148,
+"y": 108,
+"fam": 0
+},
+{
+"x": 83,
+"y": -123,
+"fam": 0
+},
+{
+"x": 127,
+"y": -24,
+"fam": 7
+},
+{
+"x": 142,
+"y": 6,
+"fam": 7
+},
+{
+"x": 119,
+"y": 65,
+"fam": 7
+},
+{
+"x": 58,
+"y": 106,
+"fam": 7
+},
+{
+"x": -14,
+"y": 113,
+"fam": 7
+},
+{
+"x": -67,
+"y": 66,
+"fam": 7
+},
+{
+"x": -85,
+"y": 18,
+"fam": 7
+},
+{
+"x": -64,
+"y": -56,
+"fam": 7
+},
+{
+"x": -29,
+"y": -98,
+"fam": 7
+},
+{
+"x": 28,
+"y": -111,
+"fam": 7
+},
+{
+"x": 65,
+"y": -102,
+"fam": 7
+},
+{
+"x": 102,
+"y": -64,
+"fam": 7
+},
+{
+"x": 70,
+"y": 151,
+"fam": 0
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+},
+{
+"x": -59,
+"y": 34,
+"fam": 8
+},
+{
+"x": -51,
+"y": 36,
+"fam": 8
+},
+{
+"x": -8,
+"y": 1,
+"fam": 8
+},
+{
+"x": 2,
+"y": 20,
+"fam": 8
+},
+{
+"x": -1,
+"y": 16,
+"fam": 8
+},
+{
+"x": 7,
+"y": 9,
+"fam": 8
+},
+{
+"x": 417,
+"y": 93,
+"fam": 8
+},
+{
+"x": 407,
+"y": 92,
+"fam": 8
+},
+{
+"x": 415,
+"y": 85,
+"fam": 8
+},
+{
+"x": 408,
+"y": 100,
+"fam": 8
+},
+{
+"x": 420,
+"y": 99,
+"fam": 8
+},
+{
+"x": 10,
+"y": -12,
+"fam": 8
+},
+{
+"x": -9,
+"y": -43,
+"fam": 8
+},
+{
+"x": -14,
+"y": -38,
+"fam": 8
+},
+{
+"x": -53,
+"y": 90,
+"fam": 8
+},
+{
+"x": 132,
+"y": 44,
+"fam": 8
+},
+{
+"x": -41,
+"y": -13,
+"fam": 8
+},
+{
+"x": -34,
+"y": -10,
+"fam": 8
+},
+{
+"x": -20,
+"y": 83,
+"fam": 8
+},
+{
+"x": -16,
+"y": 83,
+"fam": 8
+},
+{
+"x": -81,
+"y": -105,
+"fam": 8
+},
+{
+"x": -90,
+"y": -106,
+"fam": 8
+},
+{
+"x": -85,
+"y": -108,
+"fam": 8
+},
+{
+"x": 77,
+"y": -121,
+"fam": 8
+},
+{
+"x": 80,
+"y": -123,
+"fam": 8
+},
+{
+"x": 247,
+"y": -46,
+"fam": 8
+},
+{
+"x": 68,
+"y": 150,
+"fam": 8
+},
+{
+"x": 63,
+"y": 151,
+"fam": 8
+},
+{
+"x": -150,
+"y": 111,
+"fam": 8
+},
+{
+"x": -149,
+"y": 116,
+"fam": 8
+},
+{
+"x": 180,
+"y": -193,
+"fam": 8
+},
+{
+"x": 184,
+"y": -189,
+"fam": 8
+},
+{
+"x": 79,
+"y": -28,
+"fam": 8
+},
+{
+"x": 75,
+"y": -24,
+"fam": 8
+},
+{
+"x": 191,
+"y": 113,
+"fam": 8
+},
+{
+"x": 189,
+"y": 116,
+"fam": 8
+},
+{
+"x": -323,
+"y": -575,
+"fam": 8
+},
+{
+"x": -320,
+"y": -577,
+"fam": 8
+},
+{
+"x": -306,
+"y": -149,
+"fam": 8
+},
+{
+"x": -298,
+"y": -151,
+"fam": 8
+},
+{
+"x": -295,
+"y": -142,
+"fam": 8
+},
+{
+"x": -345,
+"y": 359,
+"fam": 8
+},
+{
+"x": null,
+"y": null,
+"fam": 0
+}
+],
+"shop": [
+{
+"pb": [
+1
+],
+"price": 20
+},
+{
+"pb": [
+2
+],
+"price": 200
+},
+{
+"pb": [
+3,
+8
+],
+"price": 1000
+},
+{
+"pb": [
+4,
+14
+],
+"price": 8000
+},
+{
+"pb": [
+7,
+20
+],
+"price": 20000
+},
+{
+"pb": [
+6,
+60
+],
+"price": 160000
+},
+{
+"pb": [
+2,
+60
+],
+"price": 2000
+},
+{
+"pb": [
+6,
+20
+],
+"price": 200
+},
+{
+"pb": [
+1
+],
+"price": 100
+},
+{
+"pb": [
+10
+],
+"price": 1000
+},
+{
+"pb": [
+50
+],
+"price": 10000
+},
+{
+"pb": [
+4,
+6
+],
+"price": 30
+},
+{
+"pb": [
+2
+],
+"price": 20
+},
+{
+"pb": [
+7,
+14
+],
+"price": 50
+},
+{
+"pb": [
+1
+],
+"price": 210
+},
+{
+"pb": [
+8,
+12
+],
+"price": 240
+},
+{
+"pb": [
+7,
+20
+],
+"price": 570
+},
+{
+"pb": [
+1
+],
+"price": 5
+},
+{
+"pb": [
+10
+],
+"price": 700
+},
+{
+"pb": [
+2,
+10
+],
+"price": 0
+},
+{
+"pb": [
+7,
+20
+],
+"price": 5500
+},
+{
+"pb": [
+12,
+20
+],
+"price": 1250
+},
+{
+"pb": [
+16,
+20
+],
+"price": 11500
+},
+{
+"pb": [
+1,
+20
+],
+"price": 2500
+},
+{
+"pb": [
+1
+],
+"price": 60
+},
+{
+"pb": [
+3,
+6
+],
+"price": 30
+},
+{
+"pb": [
+3,
+70
+],
+"price": 16000
+},
+{
+"pb": [
+2,
+110
+],
+"price": 4850
+},
+{
+"pb": [
+1
+],
+"price": 0
+},
+{
+"pb": [
+8,
+40
+],
+"price": 3500
+},
+{
+"pb": [
+11,
+100
+],
+"price": 12000
+},
+{
+"pb": [
+10,
+150
+],
+"price": 75000
+},
+{
+"pb": [
+3,
+30
+],
+"price": 7500
+},
+{
+"pb": [
+11,
+100
+],
+"price": 30000
+},
+{
+"pb": [
+10,
+300
+],
+"price": 240000
+},
+{
+"pb": [
+3,
+150
+],
+"price": 15200
+},
+{
+"pb": [
+5,
+200
+],
+"price": 36400
+},
+{
+"pb": [
+8,
+250
+],
+"price": 88000
+}
+],
+"constants": {
+"mission": {
+"GOT_ITEM": 0,
+"GOT_SHOPITEM": 1,
+"GOT_PLANET": 2,
+"ENTER_ZONE": 3,
+"LEAVE_ZONE": 4,
+"GOT_MISSION": 5,
+"GOT_MISSILE": 6,
+"GOT_MINERAI": 7,
+"NOT_ITEM": 8,
+"IS_LEVEL": 9,
+"INVISIBLE": 0,
+"VISIBLE": 1,
+"COLLECTED": 2,
+"COLLECTED_INV": 3,
+"TRIGGER": 4,
+"SURPRISE": 5,
+"GROUND": 6,
+"MISSILE_MAX": 40,
+"DISABLE_LEVEL_MISSIONS": -11,
+"RESET_MISSION": -10,
+"ENABLE_REBEL_MISSIONS": -9,
+"ENABLE_LEVEL_MISSIONS": -8,
+"LOSS_RADAR": -7,
+"NEW_RADAR": -6,
+"CHS": -5,
+"LOSS_LIFE": -4,
+"NEW_LIFE": -3,
+"MINERAI": -1,
+"FIRST_LEVEL": 0,
+"CARD_RED": 1,
+"CARD_GREEN": 2,
+"CARD_BLUE": 3,
+"BALL_DRILL": 4,
+"HELP_SHIP": 5,
+"DOUGLAS": 6,
+"DEBRIS": 7,
+"EXTENSION": 14,
+"SYMBOLES": 15,
+"SALMEEN": 16,
+"LIFE_TODO": 17,
+"MISSILE": 18,
+"MAP_SHOP": 58,
+"MISSILE_BLUE": 59,
+"MISSILE_BLACK": 60,
+"STONE_LYCANS": 61,
+"STONE_SPIGNYSOS": 62,
+"STAR_RED": 63,
+"STAR_ORANGE": 64,
+"STAR_YELLOW": 65,
+"STAR_GREEN": 66,
+"STAR_SKY": 67,
+"STAR_BLUE": 68,
+"STAR_PURPLE": 69,
+"EDITOR": 70,
+"MEDAL_0": 71,
+"MEDAL_1": 72,
+"MEDAL_2": 73,
+"MEDAL": 74,
+"BALL_SOLDAT": 75,
+"BALL_POWER": 76,
+"BALL_BLACK": 77,
+"MISSILE_RED": 78,
+"SUPER_RADAR": 79,
+"RADAR_OK": 80,
+"GENERATOR": 81,
+"ANTIMAT_0": 82,
+"ANTIMAT_1": 83,
+"ANTIMAT_2": 84,
+"ANTIMAT_3": 85,
+"EVASION": 86,
+"WRECK_0": 87,
+"WRECK_1": 88,
+"WRECK_2": 89,
+"WRECK_3": 90,
+"LANDER_REACTOR": 91,
+"COMBINAISON": 92,
+"SALMEEN_COUSIN": 93,
+"BADGE_FURI": 94,
+"BELT_PASS": 95,
+"EXTENSION_2": 96,
+"CRYSTAL_0": 97,
+"CRYSTAL_1": 98,
+"CRYSTAL_2": 99,
+"CRYSTAL_3": 100,
+"CRYSTAL_4": 101,
+"SCROLL_0": 102,
+"SCROLL_1": 103,
+"SCROLL_2": 104,
+"SCROLL_3": 105,
+"SCROLL_4": 106,
+"SCROLL_5": 107,
+"SCROLL_6": 108,
+"SCROLL_7": 109,
+"SYNTROGEN": 110,
+"EXTENSION_3": 111,
+"BALL_DOUBLE": 112,
+"RETROFUSER": 113,
+"TBL_0": 114,
+"TBL_1": 115,
+"TBL_2": 116,
+"TBL_3": 117,
+"TBL_4": 118,
+"TBL_5": 119,
+"TBL_6": 120,
+"TBL_7": 121,
+"TBL_8": 122,
+"TBL_9": 123,
+"TBL_10": 124,
+"TBL_11": 125,
+"KARBONITE": 126,
+"MINES": 127,
+"EMAP_0": 128,
+"EMAP_41": 169,
+"EARTH_PASS": 170,
+"MODE_DIF": 171
+},
+"zone": {
+"DIF": 0,
+"TOLERANCE": 0.3,
+"MOLTEAR": 0,
+"SOUPALINE": 1,
+"LYCANS": 2,
+"SAMOSA": 3,
+"TIBOON": 4,
+"BALIXT": 5,
+"KARBONIS": 6,
+"SPIGNYSOS": 7,
+"POFIAK": 8,
+"SENEGARDE": 9,
+"DOURIV": 10,
+"GRIMORN": 11,
+"DTRITUS": 12,
+"ASTEROBELT": 13,
+"NALIKORS": 14,
+"HOLOVAN": 15,
+"KHORLAN": 16,
+"CILORILE": 17,
+"TARCITURNE": 18,
+"CHAGARINA": 19,
+"VOLCER": 20,
+"BALMANCH": 21,
+"FOLKET": 22,
+"EARTH": 23,
+"ASTEROBELT_CX": 27,
+"ASTEROBELT_CY": 6,
+"ASTEROBELT_RAY": 110
+},
+"shop": {
+"ENGINE_MAX": 6,
+"ENGINE": 0,
+"MISSILE_MAP": 6,
+"SUNGLASSES": 7,
+"MISSILE": 8,
+"ICE": 11,
+"FIRE": 12,
+"BLACKHOLE": 13,
+"CHS": 14,
+"LATERAL": 15,
+"COOLER": 16,
+"AMMO": 17,
+"LIFE": 18,
+"DRONE": 19,
+"DRONE_PERFO": 20,
+"DRONE_SPEED": 21,
+"DRONE_CONVERTER": 22,
+"DRONE_COLLECTOR": 23,
+"RADAR": 24,
+"STORM": 25,
+"MISSILE_GENERATOR": 26,
+"ANTENNA": 27,
+"PODS": 28,
+"PODS_EXTEND_0": 29,
+"PODS_EXTEND_1": 30,
+"PODS_EXTEND_2": 31,
+"LANDER_REACTOR_0": 32,
+"LANDER_REACTOR_1": 33,
+"LANDER_REACTOR_2": 34,
+"MINE_0": 35,
+"MINE_1": 36,
+"MINE_2": 37
+}
+}
+}

@@ -10,8 +10,16 @@ namespace flash {
 
 static constexpr double BITMAP_RES = 2.0;  // texture pixels per logical pixel (matches the atlas scale)
 
-BitmapData::BitmapData(Stage* s, int w, int h, bool tr, unsigned fill)
+BitmapData::BitmapData(Stage* s, int w, int h, bool tr, unsigned fill, bool sft)
     : width(w), height(h), transparent(tr), res(BITMAP_RES), stage(s) {
+    soft = sft;
+    if (soft) {
+        res = 1;
+        tw = std::max(1, w);
+        th = std::max(1, h);
+        cpu.assign((size_t)tw * th, transparent ? fill : (fill | 0xFF000000u));
+        return;
+    }
     tw = std::max(1, (int)std::ceil(w * res));
     th = std::max(1, (int)std::ceil(h * res));
     texture = SDL_CreateTexture(s->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, tw, th);
@@ -54,6 +62,12 @@ struct TargetScope {
 };
 
 void BitmapData::fillRect(Rect r, unsigned argb) {
+    if (soft) {
+        if (!transparent) argb |= 0xFF000000u;
+        for (int y = std::max(0, (int)r.yMin); y < std::min(th, (int)std::ceil(r.yMax)); y++)
+            for (int x = std::max(0, (int)r.xMin); x < std::min(tw, (int)std::ceil(r.xMax)); x++) cpu[(size_t)y * tw + x] = argb;
+        return;
+    }
     if (!texture) return;
     TargetScope ts(stage, texture, tw, th);
     unsigned a = transparent ? (argb >> 24) : 255;
@@ -66,7 +80,97 @@ void BitmapData::fillRect(Rect r, unsigned argb) {
     SDL_RenderFillRect(stage->renderer, &fr);
 }
 
+// ---- CPU rasteriser for soft bitmaps (4x4 supersampling like Flash's "high" quality)
+static bool insidePolys(const std::vector<std::vector<double>>& polys, double x, double y) {
+    bool in = false;
+    for (const auto& p : polys) {
+        size_t n = p.size() / 2;
+        for (size_t i = 0, j = n - 1; i < n; j = i++) {
+            double xi = p[2 * i], yi = p[2 * i + 1], xj = p[2 * j], yj = p[2 * j + 1];
+            if (((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) in = !in;
+        }
+    }
+    return in;
+}
+
+static void softShape(BitmapData* bd, const std::vector<VecFill>& fills, const Matrix& m, const ColorTransform& ct,
+                      Blend blend) {
+    Matrix inv = m.inverted();
+    for (const auto& f : fills) {
+        Rect b = m.transformRect(f.bounds);
+        int x0 = std::max(0, (int)std::floor(b.xMin)), x1 = std::min(bd->width, (int)std::ceil(b.xMax) + 1);
+        int y0 = std::max(0, (int)std::floor(b.yMin)), y1 = std::min(bd->height, (int)std::ceil(b.yMax) + 1);
+        for (int py = y0; py < y1; py++)
+            for (int px = x0; px < x1; px++) {
+                if (!bd->softMask.empty() && !bd->softMask[(size_t)py * bd->width + px]) continue;
+                double acc[4] = {0, 0, 0, 0};
+                int hits = 0;
+                for (int sy = 0; sy < 4; sy++)
+                    for (int sx = 0; sx < 4; sx++) {
+                        Point q = inv.apply(px + (sx + 0.5) / 4.0, py + (sy + 0.5) / 4.0);
+                        if (!insidePolys(f.polys, q.x, q.y)) continue;
+                        double c[4];
+                        f.paint.colorAt(q.x, q.y, c);
+                        double r = c[0], g = c[1], bb = c[2], a = c[3];
+                        ct.applyTo(r, g, bb, a);
+                        a = std::clamp(a, 0.0, 255.0);
+                        acc[0] += std::clamp(r, 0.0, 255.0) * a;
+                        acc[1] += std::clamp(g, 0.0, 255.0) * a;
+                        acc[2] += std::clamp(bb, 0.0, 255.0) * a;
+                        acc[3] += a;
+                        hits++;
+                    }
+                if (!hits) continue;
+                double sa = acc[3] / 16.0 / 255.0;  // coverage-weighted alpha 0..1
+                if (sa <= 0) continue;
+                double sr = acc[0] / acc[3], sg = acc[1] / acc[3], sb = acc[2] / acc[3];
+                uint32_t& d = bd->cpu[(size_t)py * bd->width + px];
+                double dr = (d >> 16) & 255, dg = (d >> 8) & 255, db = d & 255, da = (d >> 24) / 255.0;
+                double nr, ng, nb, na;
+                switch (blend) {
+                    case Blend::Add:
+                        nr = dr + sr * sa; ng = dg + sg * sa; nb = db + sb * sa; na = std::min(1.0, da + sa);
+                        break;
+                    case Blend::Subtract:
+                        nr = dr - sr * sa; ng = dg - sg * sa; nb = db - sb * sa; na = da;
+                        break;
+                    default: {
+                        na = sa + da * (1 - sa);
+                        double k = na > 0 ? 1.0 / na : 0;
+                        nr = (sr * sa + dr * da * (1 - sa)) * k;
+                        ng = (sg * sa + dg * da * (1 - sa)) * k;
+                        nb = (sb * sa + db * da * (1 - sa)) * k;
+                        if (!bd->transparent) { nr = sr * sa + dr * (1 - sa); ng = sg * sa + dg * (1 - sa); nb = sb * sa + db * (1 - sa); }
+                    }
+                }
+                if (!bd->transparent) na = 1;
+                d = ((uint32_t)std::lround(std::clamp(na, 0.0, 1.0) * 255) << 24) |
+                    ((uint32_t)std::lround(std::clamp(nr, 0.0, 255.0)) << 16) |
+                    ((uint32_t)std::lround(std::clamp(ng, 0.0, 255.0)) << 8) | (uint32_t)std::lround(std::clamp(nb, 0.0, 255.0));
+            }
+    }
+}
+
+static void softDraw(BitmapData* bd, DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend blend, bool root) {
+    if (!o->visible && !root) return;
+    Matrix lm = root ? m : m * o->matrix();
+    ColorTransform lct = root ? ct : o->colorTransform().concat(ct);
+    Blend b = (!root && o->blendMode != Blend::Normal) ? o->blendMode : blend;
+    if (o->kind == DisplayObject::KShape) {
+        auto* sh = static_cast<Shape*>(o);
+        const auto* v = sh->lib->vectorShape(sh->charId);
+        if (v) softShape(bd, *v, lm, lct, b);
+        else SDL_Log("soft BitmapData.draw: shape %d has no vector data (add it to --vector)", sh->charId);
+    } else if (o->kind == DisplayObject::KClip) {
+        for (auto& [d, c] : static_cast<MovieClip*>(o)->children) softDraw(bd, c.get(), lm, lct, b, false);
+    }
+}
+
 void BitmapData::draw(DisplayObject* src, const Matrix& m, const ColorTransform* ct, Blend blend) {
+    if (soft && src) {
+        softDraw(this, src, m, ct ? *ct : ColorTransform(), blend, true);
+        return;
+    }
     if (!texture || !src) return;
     TargetScope ts(stage, texture, tw, th);
     // Flash ignores the source's own matrix, colour transform and blend mode for draw()
@@ -96,6 +200,7 @@ void BitmapData::draw(BitmapData* src, const Matrix& m, const ColorTransform* ct
 }
 
 std::vector<uint32_t> BitmapData::readPixels() {
+    if (soft) return cpu;
     std::vector<uint32_t> out((size_t)tw * th, 0);
     if (!texture) return out;
     TargetScope ts(stage, texture, tw, th);
@@ -111,6 +216,10 @@ std::vector<uint32_t> BitmapData::readPixels() {
 }
 
 void BitmapData::writePixels(const std::vector<uint32_t>& px) {
+    if (soft) {
+        cpu = px;
+        return;
+    }
     if (!texture) return;
     SDL_Texture* up = TexturePool::get().acquire(stage->renderer, tw, th, SDL_TEXTUREACCESS_STREAMING);
     float uw, uh;
@@ -220,6 +329,10 @@ void BitmapData::perlinNoise(double baseX, double baseY, int octaves, int seed, 
 }
 
 unsigned BitmapData::getPixel32(int x, int y) {
+    if (soft) {
+        if (x < 0 || y < 0 || x >= tw || y >= th) return 0;
+        return cpu[(size_t)y * tw + x];
+    }
     auto px = readPixels();
     int ix = (int)(x * res), iy = (int)(y * res);
     if (ix < 0 || iy < 0 || ix >= tw || iy >= th) return 0;
