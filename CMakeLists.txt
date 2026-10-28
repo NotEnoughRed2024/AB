@@ -31,7 +31,18 @@ add_executable(alphabounce src/main.cpp ${FLASH_SRC} ${GAME_SRC})
 target_include_directories(alphabounce PRIVATE src src/flash third_party)
 target_link_libraries(alphabounce PRIVATE SDL3::SDL3 stb)
 
-add_executable(symbolviewer tools/symbolviewer.cpp ${FLASH_SRC})
+# keep assets/ and data/ next to the executable so it runs from the build folder too
+add_custom_command(TARGET alphabounce POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:alphabounce>/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:alphabounce>/data)
+if(WIN32)
+  # ship SDL3.dll beside the game when SDL is built from source
+  add_custom_command(TARGET alphabounce POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL3::SDL3> $<TARGET_FILE_DIR:alphabounce>)
+endif()
+
+# debug tool: shows symbols from the converted art (not built by default)
+add_executable(symbolviewer EXCLUDE_FROM_ALL tools/symbolviewer.cpp ${FLASH_SRC})
 target_include_directories(symbolviewer PRIVATE src src/flash third_party)
 target_link_libraries(symbolviewer PRIVATE SDL3::SDL3 stb)
 

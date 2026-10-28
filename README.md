@@ -50,7 +50,7 @@ downloads and builds it.
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-./build/alphabounce            # run from the repository root (it looks for assets/ and data/)
+./build/alphabounce            # assets/ and data/ are copied next to the executable
 ```
 
 On Linux, SDL3 needs the usual development packages (X11/Wayland, etc.) when it is built from source —
