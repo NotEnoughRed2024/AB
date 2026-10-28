@@ -299,7 +299,7 @@ void BitmapData::perlinNoise(double baseX, double baseY, int octaves, int seed, 
         y -= std::floor(y);
         double u = fade(x), v = fade(y);
         int o = ch * 37;
-        int aa = perm[perm[X + o & 255] + Y], ab = perm[perm[X + o & 255] + Y + 1];
+        int aa = perm[perm[(X + o) & 255] + Y], ab = perm[perm[(X + o) & 255] + Y + 1];
         int ba = perm[perm[(X + 1 + o) & 255] + Y], bb = perm[perm[(X + 1 + o) & 255] + Y + 1];
         return lerp(lerp(grad(aa, x, y), grad(ba, x - 1, y), u), lerp(grad(ab, x, y - 1), grad(bb, x - 1, y - 1), u), v);
     };
