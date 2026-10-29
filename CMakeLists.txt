@@ -21,8 +21,8 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-file(GLOB FLASH_SRC src/flash/*.cpp)
-file(GLOB_RECURSE GAME_SRC src/game/*.cpp src/mt/*.cpp src/site/*.cpp)
+file(GLOB FLASH_SRC CONFIGURE_DEPENDS src/flash/*.cpp)
+file(GLOB_RECURSE GAME_SRC CONFIGURE_DEPENDS src/game/*.cpp src/mt/*.cpp src/site/*.cpp)
 
 add_library(stb STATIC src/third_party_impl.c)
 target_include_directories(stb PUBLIC third_party)
