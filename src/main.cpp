@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "flash/Stage.h"
 #include "game/Shell.h"
@@ -135,7 +136,50 @@ int main(int argc, char** argv) {
         double acc = 0;
         int count = 0;
         bool run = true;
+        // test hook: AB_TEST_CLICKS="frame:x,y;..." clicks at stage coordinates on the given frames
+        struct TestClick {
+            int frame;
+            double x, y;
+        };
+        std::vector<TestClick> clicks;
+        if (const char* tc = SDL_getenv("AB_TEST_CLICKS")) {
+            std::string all = tc;
+            size_t p = 0;
+            while (p < all.size()) {
+                size_t e = all.find(';', p);
+                std::string item = all.substr(p, e == std::string::npos ? std::string::npos : e - p);
+                TestClick c{};
+                if (std::sscanf(item.c_str(), "%d:%lf,%lf", &c.frame, &c.x, &c.y) == 3) clicks.push_back(c);
+                if (e == std::string::npos) break;
+                p = e + 1;
+            }
+        }
+        auto injectClicks = [&](int frame) {
+            for (auto& c : clicks) {
+                float wx = (float)(stage.viewX + c.x * stage.viewScale), wy = (float)(stage.viewY + c.y * stage.viewScale);
+                SDL_Event ev{};
+                if (c.frame == frame) {
+                    ev.type = SDL_EVENT_MOUSE_MOTION;
+                    ev.motion.x = wx;
+                    ev.motion.y = wy;
+                    SDL_PushEvent(&ev);
+                    ev = SDL_Event{};
+                    ev.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+                    ev.button.button = SDL_BUTTON_LEFT;
+                    ev.button.x = wx;
+                    ev.button.y = wy;
+                    SDL_PushEvent(&ev);
+                } else if (c.frame + 2 == frame) {
+                    ev.type = SDL_EVENT_MOUSE_BUTTON_UP;
+                    ev.button.button = SDL_BUTTON_LEFT;
+                    ev.button.x = wx;
+                    ev.button.y = wy;
+                    SDL_PushEvent(&ev);
+                }
+            }
+        };
         while (run) {
+            if (!clicks.empty()) injectClicks(count);
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
                 if (e.type == SDL_EVENT_QUIT) run = false;

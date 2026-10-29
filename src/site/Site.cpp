@@ -96,9 +96,10 @@ const Ui UI_EN = {
      {"Envelopes",
       "Losing every ball costs one <strong>emergency envelope</strong>. Extra envelopes, missiles and "
       "engine upgrades are found through missions or bought at the astroports."},
-     {"The sector map",
-      "The galaxy map isn't ported yet: until it is, pick the next sector with the <strong>arrow keys</strong> "
-      "and press <strong>ENTER</strong>. Sectors further than your engine allows can't be reached."}},
+     {"The galaxy map",
+      "Click one of the highlighted squares around your envelope to fly there and drill it; a better "
+      "<strong>engine</strong> reaches further. Alien icons are <strong>astroports</strong>: stop on one and "
+      "open the shop with the button at the bottom of the map. The spanner button holds your preferences."}},
     {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
     {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"},
     {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November",
@@ -148,9 +149,11 @@ const Ui UI_FR = {
      {"Enveloppes",
       "Perdre toutes ses billes co\xC3\xBBte une <strong>enveloppe de secours</strong>. Enveloppes, missiles et "
       "moteurs s'obtiennent par les missions ou dans les astroports."},
-     {"La carte des secteurs",
-      "La carte de la galaxie n'est pas encore port\xC3\xA9" "e : en attendant, choisissez le prochain secteur avec "
-      "les <strong>fl\xC3\xA8" "ches</strong> et validez avec <strong>ENTR\xC3\x89" "E</strong>."}},
+     {"La carte de la galaxie",
+      "Cliquez sur une des cases en surbrillance autour de votre enveloppe pour y aller et la forer ; un meilleur "
+      "<strong>moteur</strong> va plus loin. Les ic\xC3\xB4nes extraterrestres sont des <strong>astroports</strong> : "
+      "arr\xC3\xAAtez-vous dessus et ouvrez la boutique avec le bouton en bas de la carte. La cl\xC3\xA9 donne acc\xC3\xA8s "
+      "aux pr\xC3\xA9" "f\xC3\xA9rences."}},
     {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"},
     {"dim", "lun", "mar", "mer", "jeu", "ven", "sam"},
     {"janvier", "f\xC3\xA9vrier", "mars", "avril", "mai", "juin", "juillet", "ao\xC3\xBBt", "septembre", "octobre",
@@ -200,9 +203,11 @@ const Ui UI_DE = {
      {"H\xC3\xBCllen",
       "Wer alle Kugeln verliert, verbraucht eine <strong>Notfallh\xC3\xBClle</strong>. H\xC3\xBCllen, Raketen und "
       "Antriebe gibt es durch Missionen oder in den Astroports."},
-     {"Die Sektorkarte",
-      "Die Galaxiekarte ist noch nicht portiert: bis dahin w\xC3\xA4hlst du den n\xC3\xA4" "chsten Sektor mit den "
-      "<strong>Pfeiltasten</strong> und best\xC3\xA4tigst mit <strong>ENTER</strong>."}},
+     {"Die Galaxiekarte",
+      "Klicke auf eines der hervorgehobenen Felder um deine H\xC3\xBClle, um dorthin zu fliegen und es abzubauen; "
+      "ein besserer <strong>Antrieb</strong> reicht weiter. Alien-Symbole sind <strong>Astroports</strong>: halte "
+      "dort an und \xC3\xB6" "ffne den Laden mit dem Knopf unten auf der Karte. Der Schraubenschl\xC3\xBCssel \xC3\xB6" "ffnet "
+      "die Einstellungen."}},
     {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"},
     {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"},
     {"Januar", "Februar", "M\xC3\xA4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
@@ -251,9 +256,10 @@ const Ui UI_ES = {
      {"Envolturas",
       "Perder todas las bolas cuesta una <strong>envoltura de emergencia</strong>. Envolturas, misiles y motores "
       "se consiguen con las misiones o en los astropuertos."},
-     {"El mapa de sectores",
-      "El mapa de la galaxia a\xC3\xBAn no est\xC3\xA1 portado: mientras tanto, elige el siguiente sector con las "
-      "<strong>flechas</strong> y pulsa <strong>INTRO</strong>."}},
+     {"El mapa de la galaxia",
+      "Haz clic en una de las casillas resaltadas alrededor de tu envoltura para viajar all\xC3\xAD y perforarla; "
+      "un <strong>motor</strong> mejor llega m\xC3\xA1s lejos. Los iconos alien\xC3\xAD" "genas son <strong>astropuertos</strong>: "
+      "detente en uno y abre la tienda con el bot\xC3\xB3n de abajo del mapa. La llave abre las preferencias."}},
     {"domingo", "lunes", "martes", "mi\xC3\xA9rcoles", "jueves", "viernes", "s\xC3\xA1" "bado"},
     {"dom", "lun", "mar", "mi\xC3\xA9", "jue", "vie", "s\xC3\xA1" "b"},
     {"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre",

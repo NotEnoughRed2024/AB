@@ -1,9 +1,9 @@
 #include "Shell.h"
 
 #include <cmath>
-#include <sstream>
 
 #include "Elements.h"
+#include "Map.h"
 
 namespace Col = mt::Col;
 
@@ -130,7 +130,7 @@ void SectorMap::build(int sx, int sy) {
 Shell::Shell() { instance = this; }
 
 Shell::~Shell() {
-    game.reset();
+    map.reset();
     Sprite::collectGarbage();
     dm.reset();
     mcPlanet.reset();
@@ -150,54 +150,62 @@ bool Shell::init(const std::string& assetsDir, const std::string& dataDir, const
         mcPlanet->visible = false;
         mcPlanet->loadRoot(pl);
     }
-    setInfos();
+    // Manager.initLeReste: the map, waiting for Api.askInfos -> setInfos
+    map = std::make_unique<navi::Map>(dm->empty(DP_MAP));
+    map->setInfos();
     return true;
 }
 
-void Shell::setInfos() {
-    // Map.setInfos: fresh PlayerInfo from the save, then back to the map
+void Shell::reloadPlayer() {
     pi = std::make_unique<PlayerInfo>();
     Cs::pi = pi.get();
     pi->loadCache();
-    if (game) {
-        game.reset();
-        mcGame = nullptr;
-        Sprite::collectGarbage();
-    }
-    openSelect();
 }
+
+Game* Shell::game() const { return map ? map->game.get() : nullptr; }
+
+void Shell::levelStarted() { levelStartMs = SDL_GetTicks(); }
 
 void Shell::update() {
     if (pendingInfos) {
         pendingInfos = false;
-        setInfos();
-        return;
+        map->setInfos();
     }
-    if (game) {
+    if (directPending && map->isMoving()) {
+        directPending = false;
+        map->callPlay(directX, directY);
+    }
+    Game* g = game();
+    if (g && map->isPlaying()) {
         // test hooks: AB_TEST_OPTION=n applies capsule n after 60 frames, AB_TEST_PAUSE pauses at frame 120
         static int testFrame = 0;
         testFrame++;
         if (const char* o = SDL_getenv("AB_TEST_OPTION"))
-            if (testFrame == 60 && game->pad) game->getOption(std::atoi(o));
-        if (SDL_getenv("AB_TEST_PAUSE") && (testFrame == 120 || testFrame == 200)) game->togglePause();
+            if (testFrame == 60 && g->pad) g->getOption(std::atoi(o));
+        if (SDL_getenv("AB_TEST_PAUSE") && (testFrame == 120 || testFrame == 200)) g->togglePause();
         if (Game::PLAY_AUTO) {
             // test harness: hold the button until the first ball is launched, then play like the demo
-            if (game->flFirstBall && !game->flPress) game->mouseDown();
-            else if (!game->flFirstBall && game->flPress && game->pad && game->pad->type == Cs::PAD_STANDARD) game->mouseUp();
-            game->updateAuto();
+            if (g->flFirstBall && !g->flPress) g->mouseDown();
+            else if (!g->flFirstBall && g->flPress && g->pad && g->pad->type == Cs::PAD_STANDARD) g->mouseUp();
+            g->updateAuto();
         }
-        game->update();
     }
+    map->update();
 }
 
-void Shell::initConnexion() {}
+void Shell::initConnexion() {
+    if (map) map->initConnexion();
+}
 
 void Shell::playDirect(int wx, int wy) {
-    closeSelect();
-    Cs::pi->x = wx;
-    Cs::pi->y = wy;
-    openSelect();
-    startLevel(wx, wy);
+    // testing: put the player on that sector and click it as soon as the map is ready
+    Cs::pi->x = Cs::pi->ox = wx;
+    Cs::pi->y = Cs::pi->oy = wy;
+    Cs::pi->saveCache();
+    map->setInfos();
+    directX = wx;
+    directY = wy;
+    directPending = true;
 }
 
 // Api.endGame, offline branch ("emulation de la partie serveur")
@@ -214,6 +222,9 @@ void Shell::endGame(int x, int y, bool victory, int min, int missiles, int itemI
     p->minerai += min;
     p->missile = missiles;
     p->addItem(itemId);
+    // the website remembered where the envelope came from, so the map can animate the move
+    p->ox = p->x;
+    p->oy = p->y;
     if (victory) {
         p->x = x;
         p->y = y;
@@ -221,112 +232,6 @@ void Shell::endGame(int x, int y, bool victory, int min, int missiles, int itemI
     p->checkMission();
     for (int id : shopItems) p->shopItems.set(id, 0);
     p->saveCache();
-    if (game) game->kill();
+    if (Game* g = game()) g->kill();
     pendingInfos = true;  // haxe.Timer.delay(Api.setInfos): never tear the game down mid-update
-}
-
-// ------------------------------------------------------------------ sector select (stand-in for navi.Map)
-
-void Shell::openSelect() {
-    showMouse();
-    smap.build(Cs::pi->x - SectorMap::XMAX / 2, Cs::pi->y - SectorMap::YMAX / 2);
-    selX = Cs::pi->x;
-    selY = Cs::pi->y;
-    ui = dm->empty(DP_MAP);
-    uiText = ui->createTextField("info", 1000, 8, 248, 384, 110);
-    uiText->def.wordWrap = true;
-    uiText->def.multiline = true;
-    uiText->def.height = 11;
-    uiText->def.outlines = false;
-    uiText->textColor = 0xFFFFFF;
-    uiKeys = std::make_shared<flash::Listener>();
-    uiKeys->onKeyDown = [this] {
-        int k = flash::Stage::get()->lastKey;
-        int nx = selX, ny = selY;
-        if (k == flash::Key::LEFT) nx--;
-        if (k == flash::Key::RIGHT) nx++;
-        if (k == flash::Key::UP) ny--;
-        if (k == flash::Key::DOWN) ny++;
-        int reach = std::max(1, Cs::pi->engine);
-        if (std::abs(nx - Cs::pi->x) <= reach && std::abs(ny - Cs::pi->y) <= reach) {
-            selX = nx;
-            selY = ny;
-        }
-        if (k == flash::Key::ENTER || k == flash::Key::SPACE) {
-            startLevel(selX, selY);
-            return;
-        }
-        if (k == flash::Key::ESCAPE) quitRequested = true;
-        drawSelect();
-    };
-    flash::Stage::get()->keyListeners.push_back(uiKeys);
-    drawSelect();
-}
-
-void Shell::closeSelect() {
-    if (uiKeys) hx::remove(flash::Stage::get()->keyListeners, uiKeys);
-    uiKeys = nullptr;
-    if (ui) ui->removeMovieClip();
-    ui = nullptr;
-    uiText = nullptr;
-}
-
-void Shell::drawSelect() {
-    if (!ui) return;
-    ui->clear();
-    // a 9x9 window of sectors around the player, coloured like the original map
-    int half = 4;
-    double cw = 24, ch = 24, ox = 200 - (half + 0.5) * cw, oy = 12;
-    for (int dy = -half; dy <= half; dy++)
-        for (int dx = -half; dx <= half; dx++) {
-            int wx = Cs::pi->x + dx, wy = Cs::pi->y + dy;
-            int mx = wx - smap.SX, my = wy - smap.SY;
-            int col = (mx >= 0 && mx < SectorMap::XMAX && my >= 0 && my < SectorMap::YMAX) ? smap.spaceColors[mx][my] : 0;
-            int zid = (mx >= 0 && mx < SectorMap::XMAX && my >= 0 && my < SectorMap::YMAX) ? smap.zoneTable[mx][my] : -1;
-            double x0 = ox + (dx + half) * cw, y0 = oy + (dy + half) * ch;
-            ui->lineStyle(ch - 2, col, 100);
-            ui->moveTo(x0 + 1, y0 + ch / 2);
-            ui->lineTo(x0 + cw - 1, y0 + ch / 2);
-            if (zid >= 0) {
-                int zc = zid == ZoneInfo::ASTEROBELT ? 0x777766 : ZoneInfo::list[zid].col;
-                ui->lineStyle(8, zc, 100);
-                ui->moveTo(x0 + cw / 2 - 4, y0 + ch / 2);
-                ui->lineTo(x0 + cw / 2 + 4, y0 + ch / 2);
-            }
-            unsigned frame = 0;
-            if (wx == Cs::pi->x && wy == Cs::pi->y) frame = 0x00FF00;
-            if (wx == selX && wy == selY) frame = 0xFFFF00;
-            if (frame) {
-                ui->lineStyle(2, frame, 100);
-                ui->moveTo(x0 + 1, y0 + 1);
-                ui->lineTo(x0 + cw - 1, y0 + 1);
-                ui->lineTo(x0 + cw - 1, y0 + ch - 1);
-                ui->lineTo(x0 + 1, y0 + ch - 1);
-                ui->lineTo(x0 + 1, y0 + 1);
-            }
-        }
-    int mx = selX - smap.SX, my = selY - smap.SY;
-    int zid = smap.zoneTable[mx][my];
-    std::ostringstream s;
-    s << "ALPHABOUNCE - SDL3 PORT (core game test screen)\n";
-    s << "Sector [" << selX << "][" << selY << "]";
-    if (zid >= 0) s << "  -  " << ZoneInfo::list[zid].name;
-    s << "\nMinerai: " << Cs::pi->minerai << "   Lives: " << Cs::pi->getLife() << "   Missiles: " << Cs::pi->missile << "/"
-      << Cs::pi->missileMax << "\n";
-    s << "Arrows: choose sector   Enter: play   Esc: quit\n";
-    s << "In game: mouse moves the pad, click launches, P pauses, Space fires missiles";
-    uiText->setText(s.str());
-}
-
-void Shell::startLevel(int wx, int wy) {
-    closeSelect();
-    int mx = wx - smap.SX, my = wy - smap.SY;
-    int zid = smap.zoneTable[mx][my];
-    int col = smap.spaceColors[mx][my];
-    // Api.play (offline): confirmMove(x, y, true, edited level or null)
-    mcGame = dm->empty(DP_MAP);
-    game = std::make_unique<Game>(mcGame, col);
-    game->initLevel(wx, wy, zid, true, nullptr);
-    game->initPlay();
-    levelStartMs = SDL_GetTicks();
 }

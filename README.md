@@ -6,9 +6,10 @@ It is rebuilt from the source code Motion Twin released in
 
 > **Status:** early. The core brick-breaker is playable: level generation, bricks and their special
 > behaviours, the 26 capsule options, balls, molecules, missiles, drones, pause/specials and the end-of-level
-> flow, with progress saved locally. It runs inside a recreation of the alphabounce.com page (mission feed,
-> My Page, records, help). The galaxy map, shops, lander mini-game and editor are not ported yet; a simple
-> sector-select screen stands in for the map.
+> flow, the galaxy map (with its zoom into each sector, black holes and the retrofuser), the astroport shop
+> and the preferences, with progress saved locally. It runs inside a recreation of the alphabounce.com page
+> (mission feed, My Page, records, help). The lander mini-game (planet surfaces) and the level editor are not
+> ported yet.
 
 ## How it works
 
@@ -24,7 +25,9 @@ Rather than redraw anything, the port keeps the original art and behaviour:
   the line-drawing API, mouse/keyboard events and SharedObject saves.
 - **`src/mt/`** ports Motion Twin's helper libraries (DepthManager, OldRandom, bumdum sprites/particles).
 - **`src/game/`** is the game itself, ported class by class from `client/src/*.hx`, keeping the original
-  structure so the two can be read side by side.
+  structure so the two can be read side by side. `Map.cpp` is `navi/Map.hx` with its menus (`Menu`, `Shop`,
+  `Pref`); `Shell.cpp` stands in for `Manager.hx` and `Api.hx`, emulating what the website's server did
+  (moving the player, warps, purchases, saving).
 - **`tools/gen_data.py`** extracts missions, items, planets, shop items and all four languages' text
   from the original sources into `data/*.json`, plus the website's mission texts (`data/site_*.json`).
 - **`src/site/`** recreates the alphabounce.com page around the game, using the site's own graphics
@@ -71,7 +74,8 @@ lacks the custom blend modes used for Flash colour effects, so colours will be w
 
 Same as the original: the mouse moves the pad, click launches/glues/fires depending on the pad,
 **Space** or **X** fires missiles, **P**/**Esc** pauses (click a capsule to use it), **Enter** uses the
-first capsule. On the sector screen: arrow keys choose a sector, **Enter** plays.
+first capsule. On the galaxy map, click a highlighted square to fly there; the buttons at the bottom open
+the shop (when you stand on an astroport), black holes and preferences.
 **F11** or **Alt+Enter** toggles full screen. The mouse wheel or **Page Up/Down** scrolls the right panel.
 
 Options: `--lang fr|de|es`, `--fullscreen`, `--bare` (the game alone, without the page), `--scale N`,
@@ -94,7 +98,7 @@ python3 tools/site_assets.py WebGamesArchives/Alphabounce assets
 ## Roadmap
 
 1. ~~Core brick-breaker~~ ✔
-2. Galaxy map (navigation, fog, planets, capsules/fuel, travellers, black holes)
+2. ~~Galaxy map, astroport shop, preferences~~ ✔ (travellers and planet houses come with the lander)
 3. ~~Website page with mission feed~~ ✔ — shop and inventory screens of the map still to do
 4. Lander mini-game (planet surfaces)
 5. Level editor, menus/preferences, audio hooks

@@ -77,11 +77,15 @@ void Stage::handleEvent(const SDL_Event& e) {
         case SDL_EVENT_MOUSE_MOTION: {
             float fx = e.motion.x, fy = e.motion.y;
             SDL_RenderCoordinatesFromWindow(renderer, fx, fy, &fx, &fy);
-            // like the Flash plugin, the game keeps receiving the pointer position outside its area
-            // (it shows "POINTER OUT OF GAME ZONE" then), but not clicks
             mouseX = (fx - viewX) / viewScale;
             mouseY = (fy - viewY) / viewScale;
             pointerInGame = insideGame(fx, fy);
+            // in the browser the Flash plugin stopped seeing the pointer once it left (unless a button
+            // was held): pin it to the edge of the game so reading the page doesn't steer the pad
+            if (gameRect.w > 0 && !pointerInGame && !gameOwnsButton) {
+                mouseX = std::max(0.0, std::min(mouseX, width - 0.01));
+                mouseY = std::max(0.0, std::min(mouseY, height - 0.01));
+            }
             applyCursor();
             updatePointer();
             auto ls = mouseListeners;

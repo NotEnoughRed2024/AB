@@ -1,11 +1,14 @@
-// Top level: what Manager.hx, Api.hx (offline "server emulation") and navi.Map.hx do around a level.
-// navi.Map isn't ported yet; a small sector-select screen stands in for it.
+// Top level: what Manager.hx and Api.hx (the offline "server emulation") do around the galaxy map.
 #pragma once
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "Game.h"
+
+namespace navi {
+class Map;
+}
 
 // The background / zone computation of navi.Map.drawBg + initZones, so each sector gets the same
 // space colour and zone as in the original.
@@ -31,29 +34,23 @@ public:
     void update();  // Manager's onEnterFrame
     void playDirect(int wx, int wy);  // testing: jump straight into a sector
 
-    // called by the game
+    // called by the game and the map
     void initConnexion();
     void endGame(int x, int y, bool victory, int min, int missiles, int itemId, const std::vector<int>& shopItems);
+    void reloadPlayer();   // fresh PlayerInfo from the save (part of Map.setInfos)
+    void requestInfos() { pendingInfos = true; }  // haxe.Timer.delay(Api.setInfos)
+    void levelStarted();
+    Game* game() const;
+    navi::Map* getMap() const { return map.get(); }
 
     bool quitRequested = false;
 
 private:
     static Shell* instance;
     std::unique_ptr<PlayerInfo> pi;
-    std::unique_ptr<Game> game;
-    MC mcGame;
+    std::unique_ptr<navi::Map> map;
     bool pendingInfos = false;
     Uint64 levelStartMs = 0;
-    SectorMap smap;
-
-    // sector select stand-in
-    MC ui;
-    TF uiText;
-    int selX = 0, selY = 0;
-    std::shared_ptr<flash::Listener> uiKeys;
-    void setInfos();
-    void openSelect();
-    void closeSelect();
-    void drawSelect();
-    void startLevel(int wx, int wy);
+    int directX = 0, directY = 0;
+    bool directPending = false;
 };

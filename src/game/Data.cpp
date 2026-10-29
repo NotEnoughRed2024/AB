@@ -196,6 +196,7 @@ void PlayerInfo::setToDefault() {
     comp.assign(18, 0);
     travel.clear();
     houseDone.clear();
+    square.clear();
 }
 
 int PlayerInfo::getRay() const {
@@ -232,11 +233,16 @@ void PlayerInfo::loadCache() {
     }
     flAdmin = false;  // the original test build turned this on; the offline port keeps it off
     flEditor = false;
-    pid = 0;
+    // the offline build reset pid to 0 and ox/oy to the current position; the website kept them, which
+    // places Earth consistently and lets the map animate the last move, so the port keeps them too
+    pid = so.value("pid", 0);
     x = so.value("x", 0);
     y = so.value("y", 0);
-    ox = x;
-    oy = y;
+    ox = so.contains("ox") && so["ox"].is_number() ? (int)so["ox"] : x;
+    oy = so.contains("oy") && so["oy"].is_number() ? (int)so["oy"] : y;
+    square.clear();
+    if (so["square"].is_array())
+        for (auto& n : so["square"]) square.push_back(n.is_number() ? (int)n : 0);
     chl = so.value("chl", 0);
     chs = so.value("chs", 0);
     minerai = so.value("minerai", 0);
@@ -312,6 +318,8 @@ void PlayerInfo::saveCache() {
     so["pid"] = pid;
     so["x"] = x;
     so["y"] = y;
+    so["ox"] = ox;
+    so["oy"] = oy;
     so["chl"] = chl;
     so["chs"] = chs;
     so["minerai"] = minerai;

@@ -116,6 +116,7 @@ public:
     std::vector<int> comp;
     std::vector<Travel> travel;
     std::vector<std::vector<int>> houseDone;
+    std::vector<int> square;  // mission zone [x, y, size]; empty = null
     std::vector<MissionLogEntry> log;
     PlayerStats stats;
     void logMission(int n, int state);

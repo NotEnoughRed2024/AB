@@ -79,4 +79,19 @@ private:
     }
 };
 
+// mt.Rand (Parker-Miller-Carta LCG), Flash 8 build: Int arithmetic is done on doubles there.
+class Rand {
+public:
+    explicit Rand(int s) : seed((double)(s < 0 ? -(double)s : s) + 131) {}
+    int random(int n) { return n > 0 ? next() % n : 0; }
+    double rand() { return (next() % 10007) / 10007.0; }
+
+private:
+    double seed;
+    int next() {
+        seed = std::fmod(seed * 16807.0, 2147483647.0);
+        return toInt32(seed) & 0x3FFFFFFF;
+    }
+};
+
 }  // namespace mt
