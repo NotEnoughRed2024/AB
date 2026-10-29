@@ -20,7 +20,7 @@ class Map;
 class Menu {
 public:
     static constexpr int MARGIN = 10;
-    Menu(double x, double y);
+    Menu(double x, double y, const mt::OldRandom* baseSeed = nullptr);
     virtual ~Menu();
     void updateMenu();
     virtual void update() {}
@@ -35,6 +35,7 @@ protected:
     MC mcDraw;
     double icx, icy;
     std::unique_ptr<mt::DepthManager> dm;
+    std::unique_ptr<mt::OldRandom> bs;  // the inhabitant's seed (looks, what they say)
 
     virtual void init();
     void initSquare(double c);
@@ -109,14 +110,16 @@ public:
     void callPlay(int x, int y);
     void confirmMove(int x, int y, bool flMinerai);
     void warp(); // Api.warp, offline emulation
+    void confirmLander(bool flMinerai, bool flHouseVisited);
+    bool canLand() const;  // the lander menu: a planet under the player, and the reactor (or the Debug tab)
 
     void switchView(bool vis);
     void drawFog();
-    void newMenu(int id, std::function<void()> f = nullptr);
+    void newMenu(int id, std::function<void()> f = nullptr, const mt::OldRandom* seed = nullptr);
     void removeMenu(int id);
 
     bool flActive = false, flView = true, flFuel = false;
-    std::unique_ptr<Game> game;
+    std::unique_ptr<Module> game;  // a Game, or a lander::Game on a planet
     std::unique_ptr<Menu> menu;
     std::unique_ptr<mt::DepthManager> dm, mdm;
     int spaceColors[XMAX][YMAX] = {};
@@ -151,7 +154,7 @@ private:
     int fog[XMAX][YMAX] = {};
     bool exp[XMAX][YMAX] = {};
     std::map<std::pair<int, int>, bool> reach;  // missing = null (Haxe's reach[x][y] == null)
-    bool pendingMove = false;
+    bool pendingMove = false, pendingLander = false;
     int pendingX = 0, pendingY = 0;
     std::vector<MC> icons;
     std::vector<bool> iconBlinks;

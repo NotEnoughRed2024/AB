@@ -328,6 +328,9 @@ void Stage::drawImage(Library* lib, int image, const Matrix& m, const ColorTrans
     }
 }
 
+static SDL_Texture* renderToTexture(Stage* st, int w, int h, const std::function<void()>& draw);
+static bool areaFor(Stage* st, const Rect& r, double pad, int& x, int& y, int& w, int& h);
+
 void Stage::renderObject(DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend blend, bool pmTarget) {
     if (!o->visible || o->removed) return;
     if (!o->filters.empty()) {
@@ -357,6 +360,22 @@ void Stage::renderObject(DisplayObject* o, const Matrix& m, const ColorTransform
             break;
         case DisplayObject::KClip: {
             auto* mc = static_cast<MovieClip*>(o);
+            if (o->blendMode == Blend::Layer && !layerPass) {
+                // "layer": the clip is drawn on its own, so erase/alpha children only cut into it
+                Rect bb = lm.transformRect(o->localBounds());
+                int ax, ay, aw, ah;
+                if (!areaFor(this, bb, 1, ax, ay, aw, ah)) break;
+                Matrix shift = Matrix::make(1, 0, 0, 1, -ax, -ay) * m;
+                SDL_Texture* t = renderToTexture(this, aw, ah, [&]() {
+                    layerPass = true;
+                    renderObject(o, shift, ct, Blend::Normal, true);
+                    layerPass = false;
+                });
+                SDL_FRect sr{0, 0, (float)aw, (float)ah};
+                drawTexture(t, aw, ah, Matrix::make(1, 0, 0, 1, ax, ay), ColorTransform(), blend, true, &sr);
+                break;
+            }
+            if (b == Blend::Layer) b = Blend::Normal;
             if (!mc->strokes.empty() || mc->pen.pts.size() > 1) {
                 drawStrokes(mc->strokes, lm, lct, b);
                 if (mc->penSet && mc->pen.pts.size() > 1) drawStrokes({mc->pen}, lm, lct, b);
@@ -790,15 +809,37 @@ void Stage::loadDebugPrefs() {
     auto& so = sharedObject("pref");
     debug.showFps = so.value("debugFps", false);
     debug.freeTravel = so.value("debugFreeTravel", false);
+    debug.lander = so.value("debugLander", false);
 }
 
 void Stage::saveDebugPrefs() {
     sharedObject("pref")["debugFps"] = debug.showFps;
     sharedObject("pref")["debugFreeTravel"] = debug.freeTravel;
+    sharedObject("pref")["debugLander"] = debug.lander;
     flushSharedObject("pref");
 }
 
 void Stage::drawDebugOverlay() {
+    if (debug.paused) {
+        // a strip across the top of the game while it's frozen
+        char msg[96];
+        SDL_snprintf(msg, sizeof msg, "PAUSED  frame %lld   F4 resume  F5 next frame", debug.frame);
+        float sc = (float)std::max(1.0, std::floor(viewScale * 0.75));
+        float gw = (float)(width * viewScale);
+        float tw = (float)SDL_strlen(msg) * 8 * sc;
+        if (tw > gw - 8) sc = std::max(1.0f, std::floor(sc * (gw - 8) / tw));
+        tw = (float)SDL_strlen(msg) * 8 * sc;
+        SDL_SetRenderTarget(renderer, nullptr);
+        SDL_SetRenderClipRect(renderer, nullptr);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 190);
+        SDL_FRect bg{(float)viewX, (float)viewY + (float)(height * viewScale) - 16 * sc, gw, 16 * sc};
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderScale(renderer, sc, sc);
+        SDL_SetRenderDrawColor(renderer, 255, 210, 80, 255);
+        SDL_RenderDebugText(renderer, ((float)viewX + (gw - tw) / 2) / sc, (bg.y + 4 * sc) / sc, msg);
+        SDL_SetRenderScale(renderer, 1, 1);
+    }
     if (!debug.showFps) return;
     char lines[4][96];
     SDL_snprintf(lines[0], sizeof lines[0], "%.0f FPS  game %.0f/%.0f", debug.fps, std::min(debug.tps, fps), fps);

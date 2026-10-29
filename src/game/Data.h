@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>  // before json.hpp (MinGW: <intrin.h> must precede <cpuid.h>)
 #include <array>
 #include <map>
+#include <set>
 #include <climits>
 #include <string>
 #include <vector>
@@ -59,6 +60,7 @@ bool load(const std::string& dataDir, const std::string& lang);
 std::string str(const std::string& key);
 std::string at(const std::string& key, int i);
 int count(const std::string& key);
+const nlohmann::json& raw(const std::string& key);  // nested arrays (TRAVELER_LEAVE_PLANET, OUTRO_2...)
 }  // namespace Text
 
 bool loadGameData(const std::string& dataDir);
@@ -125,6 +127,7 @@ public:
     std::vector<int> comp;
     std::vector<Travel> travel;
     std::vector<std::vector<int>> houseDone;
+    std::set<std::pair<int, int>> landed;  // planet squares landed on (their minerals are gone)
     std::vector<int> square;  // mission zone [x, y, size]; empty = null
     std::vector<MissionLogEntry> log;
     PlayerStats stats;

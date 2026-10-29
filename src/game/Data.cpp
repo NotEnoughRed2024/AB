@@ -139,6 +139,12 @@ std::string Text::at(const std::string& key, int i) {
     return v.is_string() ? v.get<std::string>() : std::string();
 }
 
+const json& Text::raw(const std::string& key) {
+    static const json none;
+    auto it = gText.find(key);
+    return it == gText.end() ? none : *it;
+}
+
 int Text::count(const std::string& key) {
     auto it = gText.find(key);
     return (it == gText.end() || !it->is_array()) ? 0 : (int)it->size();
@@ -196,6 +202,7 @@ void PlayerInfo::setToDefault() {
     comp.assign(18, 0);
     travel.clear();
     houseDone.clear();
+    landed.clear();
     square.clear();
     sectors.clear();
 }
@@ -289,6 +296,10 @@ void PlayerInfo::loadCache() {
             tr.dest = t.value("dest", 0);
             travel.push_back(tr);
         }
+    landed.clear();
+    if (so["landed"].is_array())
+        for (auto& l : so["landed"])
+            if (l.is_array() && l.size() >= 2) landed.insert({l[0].get<int>(), l[1].get<int>()});
     houseDone.clear();
     if (so["houseDone"].is_array())
         for (auto& h : so["houseDone"]) {
@@ -370,6 +381,9 @@ void PlayerInfo::saveCache() {
         tr.push_back({{"name", t.name}, {"sx", t.sx}, {"sy", t.sy}, {"ex", t.ex}, {"ey", t.ey}, {"start", t.start}, {"dest", t.dest}});
     so["travel"] = tr;
     so["houseDone"] = houseDone;
+    json ld = json::array();
+    for (auto& k : landed) ld.push_back({k.first, k.second});
+    so["landed"] = ld;
     json sc = json::array();
     for (auto& [k, v] : sectors) sc.push_back({k.first, k.second, v});
     so["sectors"] = sc;

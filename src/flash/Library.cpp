@@ -27,6 +27,7 @@ Blend blendFromString(const std::string& s0) {
     if (s == "invert") return Blend::Invert;
     if (s == "alpha") return Blend::Alpha;
     if (s == "erase") return Blend::Erase;
+    if (s == "layer") return Blend::Layer;
     return Blend::Normal;
 }
 

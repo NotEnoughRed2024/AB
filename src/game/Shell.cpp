@@ -1,5 +1,7 @@
 #include "Shell.h"
 
+#include "Lander.h"
+
 #include <cmath>
 
 #include "Elements.h"
@@ -162,7 +164,27 @@ void Shell::reloadPlayer() {
     pi->loadCache();
 }
 
-Game* Shell::game() const { return map ? map->game.get() : nullptr; }
+Game* Shell::game() const { return map ? dynamic_cast<Game*>(map->game.get()) : nullptr; }
+
+// only the helpful capsules (Option.isBad lists the others); -1 = unused slot
+const int Shell::DEBUG_DROPS[2][10] = {
+    {0, 2, 4, 5, 11, 12, 18, 15, 21, 7},      // 1 magnet, 2 glue, 3 bigger pad, 4 fire ball, 5 laser,
+                                              // 6 multi-ball, 7 extra life, 8 missile refill, 9 volt ball, 0 halo
+    {10, 9, 14, 16, 17, 19, 20, 24, 26, -1},  // Shift+: kamikaze, charge, opening, quasar, generator,
+                                              // time, ultraviolet, yoyo, +1 missile
+};
+
+int Shell::debugDrop(int key, bool shift) {
+    Game* g = game();
+    if (!g || g->step != Game::Play || !g->dm) return -1;
+    int id = DEBUG_DROPS[shift ? 1 : 0][key];
+    if (id < 0) return -1;
+    flash::Point p = g->dm->getMC()->mouse();
+    double x = std::max(10.0, std::min(p.x, Cs::mcw - 10.0));
+    double y = std::max(10.0, std::min(p.y, Cs::mch - 40.0));
+    g->newOption(id, x, y);
+    return id;
+}
 
 void Shell::levelStarted() { levelStartMs = SDL_GetTicks(); }
 
@@ -198,6 +220,47 @@ void Shell::update() {
         }
     }
     map->update();
+}
+
+// Api.endLander, offline branch
+void Shell::endLander(bool victory, int min, int missiles, int caps, const Travel* travel, int itemId,
+                      bool markHouse) {
+    PlayerInfo* p = Cs::pi;
+    if (levelStartMs > 0) p->stats.playSeconds += (long long)((SDL_GetTicks() - levelStartMs) / 1000);
+    levelStartMs = 0;
+    p->minerai += min;
+    p->stats.mineralsTotal += std::max(0, min);
+    p->missile = missiles;
+    p->chs += caps;
+    p->addItem(itemId);
+    if (travel) p->travel.push_back(*travel);
+    if (markHouse) p->houseDone.push_back({p->x, p->y});
+    if (victory) p->landed.insert({p->x, p->y});
+    p->ox = p->x;
+    p->oy = p->y;
+    p->checkMission();
+    p->saveCache();
+    if (map && map->game) map->game->kill();
+    pendingInfos = true;
+}
+
+// Api.endStory: the server either started the player over in hard mode or let them fly on
+void Shell::endStory(int choice, int itemId) {
+    PlayerInfo* p = Cs::pi;
+    if (choice == 0) {
+        int pid = p->pid;
+        auto stats = p->stats;
+        auto log = p->log;
+        p->setToDefault();
+        p->pid = pid;
+        p->stats = stats;
+        p->log = log;
+    }
+    p->addItem(itemId);
+    p->checkMission();
+    p->saveCache();
+    if (map && map->game) map->game->kill();
+    pendingInfos = true;
 }
 
 void Shell::initConnexion() {
@@ -240,6 +303,10 @@ void Shell::endGame(int x, int y, bool victory, int min, int missiles, int itemI
         p->x = x;
         p->y = y;
     }
+    // passengers get off at their destination (the website's server did this)
+    if (victory)
+        for (size_t i = 0; i < p->travel.size(); i++)
+            if (p->travel[i].ex == x && p->travel[i].ey == y) p->travel.erase(p->travel.begin() + i--);
     p->checkMission();
     for (int id : shopItems) p->shopItems.set(id, 0);
     p->saveCache();

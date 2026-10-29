@@ -143,6 +143,7 @@ int main(int argc, char** argv) {
             int frame;
             double x, y;
             bool window = false;  // "w" prefix: window pixels instead of stage coordinates
+            int hold = 2;         // "+N" suffix: frames the button stays down
         };
         std::vector<TestClick> clicks;
         if (const char* tc = SDL_getenv("AB_TEST_CLICKS")) {
@@ -156,7 +157,7 @@ int main(int argc, char** argv) {
                     c.window = true;
                     item = item.substr(1);
                 }
-                if (std::sscanf(item.c_str(), "%d:%lf,%lf", &c.frame, &c.x, &c.y) == 3) clicks.push_back(c);
+                if (std::sscanf(item.c_str(), "%d:%lf,%lf+%d", &c.frame, &c.x, &c.y, &c.hold) >= 3) clicks.push_back(c);
                 if (e == std::string::npos) break;
                 p = e + 1;
             }
@@ -180,7 +181,7 @@ int main(int argc, char** argv) {
                     ev.button.x = wx;
                     ev.button.y = wy;
                     SDL_PushEvent(&ev);
-                } else if (c.frame + 2 == frame) {
+                } else if (c.frame + c.hold == frame) {
                     ev.type = SDL_EVENT_MOUSE_BUTTON_UP;
                     ev.button.button = SDL_BUTTON_LEFT;
                     ev.button.x = wx;
@@ -189,17 +190,62 @@ int main(int argc, char** argv) {
                 }
             }
         };
+        // test hook: AB_TEST_KEYS="frame:Key;..." presses keys (SDL key names, "S+" prefix = with Shift)
+        std::vector<std::pair<int, std::string>> testKeys;
+        if (const char* tk = SDL_getenv("AB_TEST_KEYS")) {
+            std::string all = tk;
+            size_t p = 0;
+            while (p < all.size()) {
+                size_t e = all.find(';', p);
+                std::string item = all.substr(p, e == std::string::npos ? std::string::npos : e - p);
+                size_t c = item.find(':');
+                if (c != std::string::npos) testKeys.push_back({std::atoi(item.c_str()), item.substr(c + 1)});
+                if (e == std::string::npos) break;
+                p = e + 1;
+            }
+        }
+        long long loops = 0;
         stage.loadDebugPrefs();
         Uint64 fpsStart = SDL_GetTicksNS(), updateNs = 0, drawNs = 0;
         int drawnFrames = 0, ticksDone = 0;
         while (run) {
             if (!clicks.empty()) injectClicks(count);
+            loops++;
+            for (auto& k : testKeys)
+                if (k.first == loops) {  // by loop, not tick, so keys still arrive while paused
+                    std::string name = k.second;
+                    bool sh = name.rfind("S+", 0) == 0;
+                    if (sh) name = name.substr(2);
+                    SDL_Event ev{};
+                    ev.type = SDL_EVENT_KEY_DOWN;
+                    ev.key.key = SDL_GetKeyFromName(name.c_str());
+                    ev.key.mod = sh ? SDL_KMOD_LSHIFT : SDL_KMOD_NONE;
+                    ev.key.down = true;
+                    SDL_PushEvent(&ev);
+                }
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
                 if (e.type == SDL_EVENT_QUIT) run = false;
                 if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.key == SDLK_F3) {
                     stage.debug.showFps = !stage.debug.showFps;
                     stage.saveDebugPrefs();
+                    continue;
+                }
+                // debug keys: F4 pause, F5 one frame at a time, 1-0 (Shift: more) drop capsules at the pointer
+                if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_F4 && !e.key.repeat) {
+                    stage.debug.paused = !stage.debug.paused;
+                    stage.debug.stepFrames = 0;
+                    continue;
+                }
+                if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_F5) {  // held: keeps stepping
+                    stage.debug.paused = true;
+                    stage.debug.stepFrames++;
+                    continue;
+                }
+                if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.key >= SDLK_0 && e.key.key <= SDLK_9 &&
+                    !(e.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+                    int slot = e.key.key == SDLK_0 ? 9 : (int)(e.key.key - SDLK_1);
+                    shell.debugDrop(slot, (e.key.mod & SDL_KMOD_SHIFT) != 0);
                     continue;
                 }
                 if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat &&
@@ -217,7 +263,21 @@ int main(int argc, char** argv) {
             if (headless) acc = frameMs;  // as fast as possible when testing
             int steps = 0;
             Uint64 t0 = SDL_GetTicksNS();
-            while (acc >= frameMs && steps < 4) {
+            if (stage.debug.paused) {
+                // frozen: only F5 steps run (one tick each), at most 4 per drawn frame
+                acc = 0;
+                if (headless && stage.debug.stepFrames == 0 && frames > 0 && ++count >= frames) run = false;
+                while (stage.debug.stepFrames > 0 && steps < 4) {
+                    stage.tick();
+                    stage.debug.stepFrames--;
+                    stage.debug.frame++;
+                    steps++;
+                    count++;
+                    if (frames > 0 && count >= frames) run = false;
+                }
+            }
+            while (!stage.debug.paused && acc >= frameMs && steps < 4) {
+                stage.debug.frame++;
                 stage.tick();
                 acc -= frameMs;
                 steps++;

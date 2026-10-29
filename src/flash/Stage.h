@@ -28,6 +28,7 @@ public:
     int width, height;  // logical stage size (400x360)
     double fps;
     double viewScale = 2;  // window pixels per logical pixel
+    bool layerPass = false;   // drawing a "layer" clip into its own texture
     bool customBlend = true;  // false on renderers without SDL_ComposeCustomBlendMode support (software)
     double viewX = 0, viewY = 0;
     // window-pixel rectangle the stage is drawn into (w <= 0: the whole window). The page around the
@@ -78,8 +79,12 @@ public:
     struct Debug {
         bool showFps = false;
         bool freeTravel = false;          // map: any square can be visited, no fuel/range checks
+        bool lander = false;              // planet landing without the reactor/pods/suit
         double anchorX = -1, anchorY = -1, anchorScale = 0;  // where the page wants the overlay (window px)
         double fps = 0, tps = 0, updateMs = 0, drawMs = 0;
+        bool paused = false;              // F4: the game stops ticking
+        int stepFrames = 0;               // F5 while paused: ticks still to run
+        long long frame = 0;              // game ticks run so far
     } debug;
     void loadDebugPrefs();
     void saveDebugPrefs();

@@ -52,7 +52,7 @@ struct Filter {
     }
 };
 
-enum class Blend { Normal, Add, Subtract, Multiply, Screen, Lighten, Darken, Difference, Overlay, Hardlight, Invert, Alpha, Erase };
+enum class Blend { Normal, Add, Subtract, Multiply, Screen, Lighten, Darken, Difference, Overlay, Hardlight, Invert, Alpha, Erase, Layer };
 Blend blendFromString(const std::string& s);
 
 struct Placement {

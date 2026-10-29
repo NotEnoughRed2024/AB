@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 
+#include "Lander.h"
 #include "Shell.h"
 #include "mt/Bouille.h"
 
@@ -75,6 +76,15 @@ void Map::init() {
 
 void Map::update() {
     deadMenu.reset();
+    if (pendingLander) {
+        // Api.playLander, offline: the planet's minerals are there until you have landed once
+        pendingLander = false;
+        int sx = Cs::pi->x, sy = Cs::pi->y;
+        bool visited = false;
+        for (auto& h : Cs::pi->houseDone)
+            if (h.size() >= 2 && h[0] == sx && h[1] == sy) visited = true;
+        confirmLander(Cs::pi->landed.count({sx, sy}) == 0, visited);
+    }
     if (pendingMove) {
         pendingMove = false;
         // Api.play: the server only offered the minerals of sectors not cleared yet
@@ -438,7 +448,8 @@ void Map::initMenu() {
     menuTimer = 0;
     PlayerInfo* pi = Cs::pi;
     newMenu(4);  // PREFERENCES
-    // EDITOR (2) and LANDER (6) need the level editor and the lander, which aren't ported yet
+    // EDITOR (2) needs the level editor, which isn't ported
+    if (canLand()) newMenu(6);  // LANDER
     if (pi->gotItem(MissionInfo::RETROFUSER)) newMenu(8, [this] { initHole(); });
 }
 
@@ -450,7 +461,7 @@ void Map::updateMenu() {
     if (menu) menu->updateMenu();
 }
 
-void Map::newMenu(int id, std::function<void()> f) {
+void Map::newMenu(int id, std::function<void()> f, const mt::OldRandom* seed) {
     int n = (int)menus.size();
     MC mc = dm->attach("mcMenu", DP_INTER);
     mc->setX(5 + n * 38);
@@ -483,7 +494,7 @@ void Map::newMenu(int id, std::function<void()> f) {
         };
     }
     if (id == 0)
-        if (auto s = mc->smc()) Shop::initAlien(s.get());
+        if (auto s = mc->smc()) Shop::initAlien(s.get(), seed);
 }
 
 void Map::removeMenu(int id) {
@@ -504,6 +515,10 @@ void Map::launchMenu(MenuButton& b) {
     switch (b.id) {
         case 0: menu = std::make_unique<Shop>(x, y); break;
         case 4: menu = std::make_unique<Pref>(x, y); break;
+        case 6:
+            initConnexion();
+            pendingLander = true;
+            break;
         default: break;
     }
 }
@@ -777,6 +792,22 @@ void Map::confirmMove(int x, int y, bool flMinerai) {
     startZoom(gx, gy, flMinerai);
 }
 
+bool Map::canLand() const {
+    PlayerInfo* pi = Cs::pi;
+    int gx = pi->x - SX, gy = pi->y - SY;
+    if (!inGrid(gx, gy)) return false;
+    int zid = zoneTable[gx][gy];
+    if (zid < 0 || zid >= (int)lander::Game::PLANETES.size()) return false;
+    return pi->gotItem(MissionInfo::LANDER_REACTOR) || lander::Game::debugKit();
+}
+
+void Map::confirmLander(bool flMinerai, bool flHouseVisited) {
+    mcGame = dm->empty(DP_GAME);
+    game = std::make_unique<lander::Game>(mcGame, inGrid(hx_, hy_) ? spaceColors[hx_][hy_] : Cs::COL_SPACE,
+                                          flHouseVisited);
+    startZoom(hx_, hy_, flMinerai);
+}
+
 void Map::initConnexion() {
     step = Connexion;
     switchView(false);
@@ -1036,7 +1067,8 @@ void Map::initBoxFuel() {
 
 // ================================================================== Menu
 
-Menu::Menu(double x, double y) : map(Map::me), icx(x), icy(y) {
+Menu::Menu(double x, double y, const mt::OldRandom* baseSeed) : map(Map::me), icx(x), icy(y) {
+    if (baseSeed) bs = std::make_unique<mt::OldRandom>(*baseSeed);
     root = map->dm->empty(Map::DP_INTER);
     dm = std::make_unique<mt::DepthManager>(root);
     initSquare(0);

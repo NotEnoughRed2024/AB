@@ -8,6 +8,8 @@
 
 #include "flash/Stage.h"
 #include "game/Game.h"
+#include "game/Map.h"
+#include "game/Shell.h"
 #include "stb_image.h"
 
 namespace site {
@@ -645,6 +647,22 @@ void Site::buildDebug() {
                          "your engine's range, the radar, fuel and the ESCorp's zone. Levels and saves work as "
                          "usual, so missions can be completed this way.";
     addCard(load("small_earth.gif", true), "Free travel", travel);
+    std::string land = std::string("<a href=\"6\">") + (st->debug.lander ? "Turn off" : "Turn on") +
+                       " planet landing</a> : <strong>" + (st->debug.lander ? "ON" : "off") +
+                       "</strong><br/>Adds the lander button to the galaxy map whenever you are on a planet, with "
+                       "landing pods and the space suit, even without the Lander reactor. Land on the "
+                       "ground, send the drones for crystals, walk out to visit the inhabitants, then fly off "
+                       "the top of the screen to take off.";
+    addCard(load("small_earth.gif", true), "Planet landing", land);
+    std::string keys = "<strong>F3</strong> frame rate overlay<br/><strong>F4</strong> pause / resume the game<br/>"
+                       "<strong>F5</strong> pause and advance one frame (hold to keep stepping)<br/>"
+                       "<strong>1</strong> magnet, <strong>2</strong> glue, <strong>3</strong> bigger pad, "
+                       "<strong>4</strong> fire ball, <strong>5</strong> laser, <strong>6</strong> multi-ball, "
+                       "<strong>7</strong> extra life, <strong>8</strong> missile refill, <strong>9</strong> volt "
+                       "ball, <strong>0</strong> halo ball<br/><strong>Shift</strong> + <strong>1</strong> to "
+                       "<strong>9</strong>: kamikaze, charge, opening, quasar, generator, time, ultraviolet, yoyo, "
+                       "+1 missile<br/>The capsules drop under the pointer, so you still have to catch them.";
+    addCard(load("small_options.gif", true), "Debug keys", keys);
     std::string info = std::string("Renderer : <strong>") + (rname ? rname : "?") + "</strong><br/>Window : <strong>" +
                        std::to_string(ow) + " x " + std::to_string(oh) + "</strong><br/>Game scale : <strong>" +
                        std::to_string((int)std::lround(st->viewScale * 100)) + "%</strong><br/>Colour effects : <strong>" +
@@ -656,7 +674,7 @@ void Site::buildDebug() {
 std::string Site::signature() const {
     const PlayerInfo* pi = Cs::pi;
     std::string s = std::to_string(tab_) + (flash::Stage::get()->debug.showFps ? "f" : "") +
-                    (flash::Stage::get()->debug.freeTravel ? "t" : "");
+                    (flash::Stage::get()->debug.freeTravel ? "t" : "") + (flash::Stage::get()->debug.lander ? "l" : "");
     if (pi)
         s += "|" + std::to_string(pi->log.size()) + "|" + std::to_string(pi->minerai) + "|" + std::to_string(pi->sectors.size()) + "|" + std::to_string(pi->x) +
              "," + std::to_string(pi->y) + "|" + std::to_string(pi->missile) + "|" + std::to_string(pi->stats.levels) +
@@ -783,11 +801,15 @@ void Site::handleEvent(const SDL_Event& e) {
                         setTab(Help);
                         break;
                     }
-                    if (l == 2 || l == 5) {
+                    if (l == 2 || l == 5 || l == 6) {
                         auto* stg = flash::Stage::get();
                         if (l == 2) stg->debug.showFps = !stg->debug.showFps;
-                        else stg->debug.freeTravel = !stg->debug.freeTravel;
+                        else if (l == 5) stg->debug.freeTravel = !stg->debug.freeTravel;
+                        else stg->debug.lander = !stg->debug.lander;
                         stg->saveDebugPrefs();
+                        // the map builds its buttons when it opens: reopen it to show or hide the lander
+                        if (l == 6 && Shell::get() && Shell::get()->getMap() && Shell::get()->getMap()->isMoving())
+                            Shell::get()->requestInfos();
                         rebuild();
                         break;
                     }

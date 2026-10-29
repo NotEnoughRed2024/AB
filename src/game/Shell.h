@@ -33,10 +33,15 @@ public:
     bool init(const std::string& assetsDir, const std::string& dataDir, const std::string& lang);
     void update();  // Manager's onEnterFrame
     void playDirect(int wx, int wy);  // testing: jump straight into a sector
+    // debug keys 1-0 (Shift: second set): drop a helpful capsule under the pointer; returns the option id or -1
+    int debugDrop(int key, bool shift);
+    static const int DEBUG_DROPS[2][10];
 
     // called by the game and the map
     void initConnexion();
     void endGame(int x, int y, bool victory, int min, int missiles, int itemId, const std::vector<int>& shopItems);
+    void endLander(bool victory, int min, int missiles, int caps, const Travel* travel, int itemId, bool markHouse);
+    void endStory(int choice, int itemId);  // landed on Earth: start over in hard mode, or fly on
     void reloadPlayer();   // fresh PlayerInfo from the save (part of Map.setInfos)
     void requestInfos() { pendingInfos = true; }  // haxe.Timer.delay(Api.setInfos)
     void levelStarted();
