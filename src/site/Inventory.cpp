@@ -384,6 +384,21 @@ void Inventory::initPlanets() {
         mc->setYScale(35);
         int pct = id < (int)pi->comp.size() ? pi->comp[id] : 0;
         mc->gotoAndStop(hx::Int((1 - pct / 100.0) * 160) + 1);
+        // The shading is four quarter discs (and masks) of one solid colour, scaled ~2.9x. Their straight
+        // edges meet on the axes and texture filtering leaves each half transparent there, so the planet
+        // shows through as hairlines. Pushing every quarter slightly across its straight edges makes them
+        // overlap, which is invisible in a solid colour.
+        for (auto& [d, c] : mc->children) {
+            if (c->kind != flash::DisplayObject::KClip) continue;
+            flash::Matrix m = c->matrix();
+            if (std::fabs(m.a * m.d - m.b * m.c) < 4) continue;  // only the scaled quarters
+            const double ex = -0.25, ey = 0.25;  // local: the quarter spans x >= 0, y <= 0
+            c->x += m.a * ex + m.c * ey;
+            c->y += m.b * ex + m.d * ey;
+            c->xscale *= 1.03;  // and a touch bigger, so the shifted arcs still cover the planet's rim
+            c->yscale *= 1.03;
+            c->scripted = true;
+        }
         if (auto f = mc->field("+Da3+")) f->setText(std::to_string(pct) + "%");
         // planet.swf is loaded into the clip, showing the planet without its ring of zones
         // (at 0% the shading covers it all; skipping it avoids hairline seams between the shading quarters)
