@@ -1,7 +1,11 @@
 // Module.hx, Game.hx
 #include "Game.h"
 
+#include <SDL3/SDL.h>
+
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 
 #include "Elements.h"
 #include "Shell.h"
@@ -86,12 +90,15 @@ void Module::initEnding(bool fl) {
 
 void Module::updateEnding() {
     victoryTimer += mt::Timer::tmod;
+    if (SDL_getenv("AB_TEST_END") && victoryTimer > 40) victoryTimer = 40;  // testing: hold the message
     if (victoryTimer > 12) {
         if (!mcEnding) {
             mcEnding = dm->attach("mcEnding", 20);
             mcEnding->y = Cs::mch * 0.5;
             mcEnding->yscale = 0;
-            if (auto f = mcEnding->field("field")) Filt::glow(f.get(), 10, 1, 0xFFFFFF);
+            // the original used glow(10, 1): on white text added over the band it smears the letters into
+            // each other, so the port keeps a tighter halo that leaves them readable
+            if (auto f = mcEnding->field("field")) Filt::glow(f.get(), 3, 1, 0xFFFFFF);
             mcEnding->blendMode = flash::Blend::Add;
         }
         if (mcEnding->yscale < 100) {
@@ -454,6 +461,14 @@ void Game::initPlay() {
 }
 
 void Game::updatePlay() {
+    // testing: AB_TEST_END="N:win" / "N:lose" ends the level after N play frames
+    if (const char* te = SDL_getenv("AB_TEST_END")) {
+        static int playFrames = 0;
+        if (++playFrames == std::atoi(te)) {
+            initEnding(std::strstr(te, "win") != nullptr);
+            return;
+        }
+    }
     if (!flFirstBall) {
         levelTimer += mt::Timer::tmod;
         autoLaunchTimer += mt::Timer::tmod;

@@ -182,6 +182,13 @@ void Shell::update() {
         testFrame++;
         if (const char* o = SDL_getenv("AB_TEST_OPTION"))
             if (testFrame == 60 && g->pad) g->getOption(std::atoi(o));
+        // AB_TEST_DROP=n drops capsule n from mid-screen at frame 60 (26 = missile)
+        if (const char* o = SDL_getenv("AB_TEST_DROP"))
+            if (testFrame == std::atoi(SDL_getenv("AB_TEST_DROP_AT") ? SDL_getenv("AB_TEST_DROP_AT") : "60")) {
+                if (const char* mt = SDL_getenv("AB_TEST_MTYPE")) g->missileType = std::atoi(mt);
+                g->newOption(std::atoi(o), Cs::mcw * 0.5, Cs::mch * 0.3);
+                if (SDL_getenv("AB_TEST_DROP_HOLD") && !g->options.empty()) g->options.back()->vy = 0;
+            }
         if (SDL_getenv("AB_TEST_PAUSE") && (testFrame == 120 || testFrame == 200)) g->togglePause();
         if (Game::PLAY_AUTO) {
             // test harness: hold the button until the first ball is launched, then play like the demo

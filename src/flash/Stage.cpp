@@ -657,8 +657,40 @@ void Stage::renderMasked(MovieClip* mc, std::map<int, std::shared_ptr<DisplayObj
         renderObject(mask, shift, ColorTransform(), Blend::Normal, true);
         mask->visible = v;
     });
-    // content *= mask alpha
     SDL_Texture* prevT = currentTarget;
+    SDL_FRect sr{0, 0, (float)aw, (float)ah};
+    if (!customBlend) {
+        // no custom blend modes (software renderer): multiply by the mask's alpha on the CPU
+        auto read = [&](SDL_Texture* t) -> SDL_Surface* {
+            SDL_SetRenderTarget(renderer, t);
+            SDL_Surface* s = SDL_RenderReadPixels(renderer, nullptr);
+            SDL_Surface* c = s ? SDL_ConvertSurface(s, SDL_PIXELFORMAT_ARGB8888) : nullptr;
+            if (s) SDL_DestroySurface(s);
+            return c;
+        };
+        SDL_Surface* cs = read(content);
+        SDL_Surface* ms = read(mtex);
+        SDL_SetRenderTarget(renderer, prevT);
+        if (cs && ms) {
+            for (int yy = 0; yy < cs->h && yy < ms->h; yy++) {
+                Uint32* cp = (Uint32*)((Uint8*)cs->pixels + yy * cs->pitch);
+                const Uint32* mp = (const Uint32*)((const Uint8*)ms->pixels + yy * ms->pitch);
+                for (int xx = 0; xx < cs->w && xx < ms->w; xx++) {
+                    Uint32 k = mp[xx] >> 24, p = cp[xx];  // premultiplied: scale all four channels
+                    Uint32 a = ((p >> 24) * k + 127) / 255, r = (((p >> 16) & 255) * k + 127) / 255,
+                           g = (((p >> 8) & 255) * k + 127) / 255, b = ((p & 255) * k + 127) / 255;
+                    cp[xx] = (a << 24) | (r << 16) | (g << 8) | b;
+                }
+            }
+            SDL_Texture* up = TexturePool::get().acquire(renderer, aw, ah, SDL_TEXTUREACCESS_STREAMING);
+            SDL_UpdateTexture(up, nullptr, cs->pixels, cs->pitch);
+            drawTexture(up, aw, ah, Matrix::make(1, 0, 0, 1, ax, ay), ColorTransform(), Blend::Normal, true, &sr);
+        }
+        if (cs) SDL_DestroySurface(cs);
+        if (ms) SDL_DestroySurface(ms);
+        return;
+    }
+    // content *= mask alpha
     SDL_SetRenderTarget(renderer, content);
     SDL_BlendMode mul = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_ALPHA,
                                                    SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO,
@@ -666,7 +698,6 @@ void Stage::renderMasked(MovieClip* mc, std::map<int, std::shared_ptr<DisplayObj
     SDL_SetTextureBlendMode(mtex, mul);
     SDL_RenderTexture(renderer, mtex, nullptr, nullptr);
     SDL_SetRenderTarget(renderer, prevT);
-    SDL_FRect sr{0, 0, (float)aw, (float)ah};
     drawTexture(content, aw, ah, Matrix::make(1, 0, 0, 1, ax, ay), ColorTransform(), Blend::Normal, true, &sr);
 }
 
