@@ -502,6 +502,7 @@ bool Stage::renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTran
         SDL_Texture* t;
         int w, h;
         double fs, dx, dy, alpha;
+        double r = 1, g = 1, b = 1;  // glow colour
     };
     std::vector<Layer> glows;
     for (auto& f : saved) {
@@ -510,7 +511,9 @@ bool Stage::renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTran
         double fs = r > 3 ? std::max(0.2, 3.0 / r) : 1.0;  // work resolution for this glow
         int lw = (int)std::ceil(aw * fs) + 2, lh = (int)std::ceil(ah * fs) + 2;
         Matrix shift = Matrix::make(fs, 0, 0, fs, -ax * fs, -ay * fs) * m;
-        ColorTransform sil(0, 0, 0, 1, (f.color >> 16) & 255, (f.color >> 8) & 255, f.color & 255, 0);
+        // white silhouette: summing it for the strength keeps colour == alpha, so nothing clips towards white;
+        // the glow colour is applied when the layer is drawn
+        ColorTransform sil(0, 0, 0, 1, 255, 255, 255, 0);
         ColorTransform pct = ct;
         pct.am = 1;
         SDL_Texture* sTex = renderToTexture(this, lw, lh, [&]() { drawPlain(shift, sil.concat(pct)); });
@@ -544,10 +547,11 @@ bool Stage::renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTran
             dx = std::cos(f.angle) * f.distance * scaleOut;
             dy = std::sin(f.angle) * f.distance * scaleOut;
         }
-        glows.push_back({acc, lw, lh, fs, dx, dy, f.alpha * std::min(1.0, strength)});
+        glows.push_back({acc, lw, lh, fs, dx, dy, f.alpha * std::min(1.0, strength), ((f.color >> 16) & 255) / 255.0,
+                         ((f.color >> 8) & 255) / 255.0, (f.color & 255) / 255.0});
     }
     // the object blurred, when it has a blur filter
-    Layer blurred{nullptr, 0, 0, 1, 0, 0, 1};
+    Layer blurred{nullptr, 0, 0, 1, 0, 0, 1, 1, 1, 1};
     if (blurR > 0) {
         double fs = blurR > 3 ? std::max(0.25, 3.0 / blurR) : 1.0;
         int lw = (int)std::ceil(aw * fs) + 2, lh = (int)std::ceil(ah * fs) + 2;
@@ -563,7 +567,7 @@ bool Stage::renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTran
         for (auto& g : glows) {
             SDL_FRect sr{0, 0, (float)g.w, (float)g.h};
             drawTexture(g.t, g.w, g.h, Matrix::make(1 / g.fs, 0, 0, 1 / g.fs, ox + g.dx, oy + g.dy),
-                        ColorTransform(1, 1, 1, alpha * g.alpha), direct ? ob : Blend::Normal, true, &sr);
+                        ColorTransform(g.r, g.g, g.b, alpha * g.alpha), direct ? ob : Blend::Normal, true, &sr);
         }
         if (blurred.t) {
             SDL_FRect sr{0, 0, (float)blurred.w, (float)blurred.h};
