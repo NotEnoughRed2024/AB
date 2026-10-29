@@ -27,11 +27,18 @@ public:
     SDL_Texture* acquire(SDL_Renderer* r, int w, int h, SDL_TextureAccess access);
     void endFrame();  // everything acquired this frame becomes reusable
     void clear();
+    size_t count() const;
+    size_t bytes() const;
 
 private:
     using Key = std::tuple<int, int, int>;
-    std::map<Key, std::vector<SDL_Texture*>> free_;
+    struct Free {
+        SDL_Texture* t;
+        Uint64 frame;  // last frame it was used
+    };
+    std::map<Key, std::vector<Free>> free_;
     std::vector<std::pair<Key, SDL_Texture*>> used_;
+    Uint64 frame_ = 0;
 };
 
 }  // namespace flash

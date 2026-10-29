@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "flash/Filters.h"
 #include "flash/Stage.h"
 #include "game/Shell.h"
 #include "site/Site.h"
@@ -72,6 +73,7 @@ int main(int argc, char** argv) {
     }
     if (!base.empty() && base.back() != '/' && base.back() != '\\') base += "/";
 
+    if (const char* seed = SDL_getenv("AB_SEED")) SDL_srand((Uint64)std::atoll(seed));  // repeatable test runs
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
@@ -187,11 +189,19 @@ int main(int argc, char** argv) {
                 }
             }
         };
+        stage.loadDebugPrefs();
+        Uint64 fpsStart = SDL_GetTicksNS(), updateNs = 0, drawNs = 0;
+        int drawnFrames = 0, ticksDone = 0;
         while (run) {
             if (!clicks.empty()) injectClicks(count);
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
                 if (e.type == SDL_EVENT_QUIT) run = false;
+                if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.key == SDLK_F3) {
+                    stage.debug.showFps = !stage.debug.showFps;
+                    stage.saveDebugPrefs();
+                    continue;
+                }
                 if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat &&
                     (e.key.key == SDLK_F11 || (e.key.key == SDLK_RETURN && (e.key.mod & SDL_KMOD_ALT)))) {
                     SDL_SetWindowFullscreen(win, !(SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN));
@@ -206,6 +216,7 @@ int main(int argc, char** argv) {
             last = now;
             if (headless) acc = frameMs;  // as fast as possible when testing
             int steps = 0;
+            Uint64 t0 = SDL_GetTicksNS();
             while (acc >= frameMs && steps < 4) {
                 stage.tick();
                 acc -= frameMs;
@@ -214,7 +225,14 @@ int main(int argc, char** argv) {
                 if (frames > 0 && count >= frames) run = false;
             }
             if (acc > frameMs * 4) acc = 0;
+            Uint64 t1 = SDL_GetTicksNS();
+            if (steps > 0) updateNs += (t1 - t0) / steps;
+            ticksDone += steps;
             if (shell.quitRequested) run = false;
+            if (SDL_getenv("AB_STATS") && count % 40 == 0)
+                SDL_Log("frame %d: filtered %d masked %d readback %d px, pool %zu textures %.1f MB", count,
+                        stage.lastStats.filtered, stage.lastStats.masked, stage.lastStats.readbackPx,
+                        flash::TexturePool::get().count(), flash::TexturePool::get().bytes() / 1048576.0);
             if (page) {
                 page->update();
                 page->layout();
@@ -227,6 +245,22 @@ int main(int argc, char** argv) {
             } else {
                 stage.render();
             }
+            Uint64 t2 = SDL_GetTicksNS();
+            drawNs += t2 - t1;
+            drawnFrames++;
+            if (t2 - fpsStart >= 500000000ULL) {
+                // averaged over half a second
+                double secs = (t2 - fpsStart) / 1e9;
+                stage.debug.fps = drawnFrames / secs;
+                stage.debug.tps = ticksDone / secs;
+                ticksDone = 0;
+                stage.debug.updateMs = updateNs / 1e6 / drawnFrames;
+                stage.debug.drawMs = drawNs / 1e6 / drawnFrames;
+                drawnFrames = 0;
+                updateNs = drawNs = 0;
+                fpsStart = t2;
+            }
+            stage.drawDebugOverlay();
             if (!run && !shot.empty()) SDL_Log("screenshot %s: %s", shot.c_str(), saveShot(ren, shot.c_str()) ? "ok" : SDL_GetError());
             SDL_RenderPresent(ren);
             if (!headless) SDL_Delay(1);

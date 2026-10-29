@@ -39,6 +39,7 @@ Rather than redraw anything, the port keeps the original art and behaviour:
     layout and hint texts (`data/inv_*.json`).
   - **Records**: replaces the online rankings with your own figures (sectors cleared, minerals, play time…).
   - **Help**: controls and a short guide. Bank and Forum were online-only and are left out.
+  - **Debug**: turns on the frame-rate overlay and shows renderer details.
 
 ### Faithfulness
 
@@ -78,7 +79,7 @@ Same as the original: the mouse moves the pad, click launches/glues/fires depend
 **Space** or **X** fires missiles, **P**/**Esc** pauses (click a capsule to use it), **Enter** uses the
 first capsule. On the galaxy map, click a highlighted square to fly there; the buttons at the bottom open
 the shop (when you stand on an astroport), black holes and preferences.
-**F11** or **Alt+Enter** toggles full screen. The mouse wheel or **Page Up/Down** scrolls the right panel.
+**F11** or **Alt+Enter** toggles full screen; **F3** (or the Debug tab) shows the frame rate. The mouse wheel or **Page Up/Down** scrolls the right panel.
 
 Options: `--lang fr|de|es`, `--fullscreen`, `--bare` (the game alone, without the page), `--scale N`,
 `--play X,Y`, `--autoplay`.

@@ -10,7 +10,7 @@ import sys
 DESIGN = ['core_center.png', 'core_center_en.png', 'core_center_de.png', 'core_center_es.png', 'core_planet.jpg',
           'tab_on.gif', 'tab_off.gif', 'help.gif', 'help_en.gif', 'help_de.gif', 'help_es.gif',
           'button_small.gif', 'button_small_hover.gif']
-ICONS = ['small_mission.gif', 'small_post.gif', 'small_money.gif', 'small_fuel.gif', 'small_fuel_free.gif',
+ICONS = ['small_mission.gif', 'small_post.gif', 'small_options.gif', 'small_mode.gif', 'small_money.gif', 'small_fuel.gif', 'small_fuel_free.gif',
          'small_fuel_empty.gif', 'small_pad.gif', 'small_earth.gif', 'small_bricks.gif', 'small_lock.gif',
          'faq_death.gif', 'faq_pad.gif', 'faq_shop.gif', 'large_planet.gif'] + \
         ['rank_%d.gif' % i for i in range(13)]

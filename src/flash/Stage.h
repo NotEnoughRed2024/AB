@@ -67,10 +67,30 @@ public:
     void drawTexture(SDL_Texture* t, double srcW, double srcH, const Matrix& m, const ColorTransform& ct, Blend blend,
                      bool premultiplied, const SDL_FRect* srcRect = nullptr);
     SDL_BlendMode sdlBlend(Blend b, bool premultiplied) const;
+    // one pass of a GPU box blur (premultiplied); returns a pooled texture holding (0,0,w,h)
+    SDL_Texture* blurTexture(SDL_Texture* src, int w, int h, double radius, bool horizontal);
     // view matrix currently in effect (stage logical -> current target pixels)
     Matrix view;
     SDL_Texture* currentTarget = nullptr;
     int targetW = 0, targetH = 0;
+
+    // debug overlay (Debug tab / F3)
+    struct Debug {
+        bool showFps = false;
+        double fps = 0, tps = 0, updateMs = 0, drawMs = 0;
+    } debug;
+    void loadDebugPrefs();
+    void saveDebugPrefs();
+    void drawDebugOverlay();
+
+    // per-frame counters for the debug overlay
+    struct Stats {
+        int filtered = 0, masked = 0, readbacks = 0, readbackPx = 0;
+    } stats, lastStats;
+    void endFrameStats() {
+        lastStats = stats;
+        stats = Stats();
+    }
 
     // persistence (SharedObject)
     nlohmann::json& sharedObject(const std::string& name);
@@ -85,6 +105,9 @@ private:
     std::vector<std::weak_ptr<MovieClip>> actionQueue;
     std::unordered_map<std::string, nlohmann::json> shared;
     void renderFiltered(DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend blend, bool premulTarget);
+    friend class BitmapData;
+    bool renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend ob, bool pmTarget,
+                           double scaleOut, int ax, int ay, int aw, int ah);
     void renderMasked(MovieClip* parent, std::map<int, std::shared_ptr<DisplayObject>>::iterator maskIt,
                       const Matrix& m, const ColorTransform& ct, Blend blend, bool premulTarget,
                       std::map<int, std::shared_ptr<DisplayObject>>::iterator& resumeIt);

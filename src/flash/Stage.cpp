@@ -414,6 +414,163 @@ static bool areaFor(Stage* st, const Rect& r, double pad, int& x, int& y, int& w
     return w > 0 && h > 0 && w < 8192 && h < 8192;
 }
 
+// premultiplied sum of colour and alpha (SDL_BLENDMODE_ADD_PREMULTIPLIED leaves the target's alpha alone)
+static SDL_BlendMode addAll() {
+    static SDL_BlendMode m = SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD,
+                                                        SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD);
+    return m;
+}
+
+// Separable box blur on the GPU: 2n+1 shifted copies at weight 1/(2n+1), all premultiplied.
+static SDL_Texture* blurPass(Stage* st, SDL_Texture* src, int w, int h, double radius, bool horizontal) {
+    int n = (int)std::ceil(radius - 0.01);
+    if (n <= 0) return src;
+    double step = 1;
+    if (n > 6) {  // wide blurs: spread the taps
+        step = radius / 6.0;
+        n = 6;
+    }
+    SDL_Texture* dst = TexturePool::get().acquire(st->renderer, w, h, SDL_TEXTUREACCESS_TARGET);
+    SDL_SetRenderTarget(st->renderer, dst);
+    SDL_SetRenderDrawColor(st->renderer, 0, 0, 0, 0);
+    SDL_RenderClear(st->renderer);
+    float k = 1.0f / (2 * n + 1);
+    SDL_SetTextureBlendMode(src, addAll());
+    SDL_SetTextureColorModFloat(src, k, k, k);
+    SDL_SetTextureAlphaModFloat(src, k);
+    SDL_FRect sr{0, 0, (float)w, (float)h};
+    for (int i = -n; i <= n; i++) {
+        float d = (float)(i * step);
+        SDL_FRect dr{horizontal ? d : 0, horizontal ? 0 : d, (float)w, (float)h};
+        SDL_RenderTexture(st->renderer, src, &sr, &dr);
+    }
+    SDL_SetTextureColorModFloat(src, 1, 1, 1);
+    SDL_SetTextureAlphaModFloat(src, 1);
+    SDL_SetRenderTarget(st->renderer, st->currentTarget);
+    return dst;
+}
+
+SDL_Texture* Stage::blurTexture(SDL_Texture* src, int w, int h, double radius, bool horizontal) {
+    return blurPass(this, src, w, h, radius, horizontal);
+}
+
+// Outer glows, drop shadows and blurs without leaving the GPU: the glow is the object's silhouette in the
+// glow colour, blurred at a reduced resolution (it's blurry anyway) and drawn behind the object. Inner and
+// knockout glows and colour matrices still go through the exact CPU path.
+bool Stage::renderFilteredGPU(DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend ob, bool pmTarget,
+                              double scaleOut, int ax, int ay, int aw, int ah) {
+    if (!customBlend || SDL_getenv("AB_CPU_FILTERS")) return false;
+    double blurR = 0;
+    for (auto& f : o->filters) {
+        if (f.type == Filter::ColorMatrix || f.inner || f.knockout) return false;
+        if (f.type == Filter::Blur) blurR = std::max(blurR, std::max(f.blurX, f.blurY) * 0.5 * scaleOut);
+    }
+    ColorTransform lct = o->colorTransform().concat(ct);
+    double finalAlpha = lct.am;
+    auto saved = o->filters;
+    Blend savedB = o->blendMode;
+    double savedAlpha = o->alpha;
+    auto drawPlain = [&](const Matrix& mm, const ColorTransform& c) {
+        o->filters.clear();
+        o->blendMode = Blend::Normal;
+        o->alpha = 100;
+        renderObject(o, mm, c, Blend::Normal, true);
+        o->filters = saved;
+        o->blendMode = savedB;
+        o->alpha = savedAlpha;
+    };
+    struct Layer {
+        SDL_Texture* t;
+        int w, h;
+        double fs, dx, dy, alpha;
+    };
+    std::vector<Layer> glows;
+    for (auto& f : saved) {
+        if (f.type == Filter::Blur) continue;
+        double rx = f.blurX * 0.5 * scaleOut, ry = f.blurY * 0.5 * scaleOut, r = std::max(rx, ry);
+        double fs = r > 3 ? std::max(0.2, 3.0 / r) : 1.0;  // work resolution for this glow
+        int lw = (int)std::ceil(aw * fs) + 2, lh = (int)std::ceil(ah * fs) + 2;
+        Matrix shift = Matrix::make(fs, 0, 0, fs, -ax * fs, -ay * fs) * m;
+        ColorTransform sil(0, 0, 0, 1, (f.color >> 16) & 255, (f.color >> 8) & 255, f.color & 255, 0);
+        ColorTransform pct = ct;
+        pct.am = 1;
+        SDL_Texture* sTex = renderToTexture(this, lw, lh, [&]() { drawPlain(shift, sil.concat(pct)); });
+        SDL_Texture* h = blurPass(this, sTex, lw, lh, rx * fs, true);
+        SDL_Texture* g = blurPass(this, h, lw, lh, ry * fs, false);
+        // strength scales the blurred alpha (clamped by the 8-bit target, as in Flash)
+        double strength = std::max(0.0, f.strength);
+        SDL_Texture* acc = g;
+        if (strength > 1.01) {
+            acc = TexturePool::get().acquire(renderer, lw, lh, SDL_TEXTUREACCESS_TARGET);
+            SDL_SetRenderTarget(renderer, acc);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+            SDL_RenderClear(renderer);
+            SDL_SetTextureBlendMode(g, addAll());
+            SDL_FRect sr{0, 0, (float)lw, (float)lh};
+            double left = std::min(strength, 12.0);
+            while (left > 0) {
+                float a = (float)std::min(1.0, left);
+                SDL_SetTextureColorModFloat(g, a, a, a);
+                SDL_SetTextureAlphaModFloat(g, a);
+                SDL_RenderTexture(renderer, g, &sr, &sr);
+                left -= 1;
+            }
+            SDL_SetTextureColorModFloat(g, 1, 1, 1);
+            SDL_SetTextureAlphaModFloat(g, 1);
+            SDL_SetRenderTarget(renderer, currentTarget);
+            strength = 1;
+        }
+        double dx = 0, dy = 0;
+        if (f.type == Filter::Shadow) {
+            dx = std::cos(f.angle) * f.distance * scaleOut;
+            dy = std::sin(f.angle) * f.distance * scaleOut;
+        }
+        glows.push_back({acc, lw, lh, fs, dx, dy, f.alpha * std::min(1.0, strength)});
+    }
+    // the object blurred, when it has a blur filter
+    Layer blurred{nullptr, 0, 0, 1, 0, 0, 1};
+    if (blurR > 0) {
+        double fs = blurR > 3 ? std::max(0.25, 3.0 / blurR) : 1.0;
+        int lw = (int)std::ceil(aw * fs) + 2, lh = (int)std::ceil(ah * fs) + 2;
+        Matrix shift = Matrix::make(fs, 0, 0, fs, -ax * fs, -ay * fs) * m;
+        ColorTransform pct = ct;
+        pct.am = 1;
+        SDL_Texture* t = renderToTexture(this, lw, lh, [&]() { drawPlain(shift, pct); });
+        SDL_Texture* h = blurPass(this, t, lw, lh, blurR * fs, true);
+        blurred = {blurPass(this, h, lw, lh, blurR * fs, false), lw, lh, fs, 0, 0, 1};
+    }
+    // glows first, then the object on top; ox/oy is where the area's corner lands in the current target
+    auto compose = [&](double ox, double oy, double alpha, bool direct) {
+        for (auto& g : glows) {
+            SDL_FRect sr{0, 0, (float)g.w, (float)g.h};
+            drawTexture(g.t, g.w, g.h, Matrix::make(1 / g.fs, 0, 0, 1 / g.fs, ox + g.dx, oy + g.dy),
+                        ColorTransform(1, 1, 1, alpha * g.alpha), direct ? ob : Blend::Normal, true, &sr);
+        }
+        if (blurred.t) {
+            SDL_FRect sr{0, 0, (float)blurred.w, (float)blurred.h};
+            drawTexture(blurred.t, blurred.w, blurred.h, Matrix::make(1 / blurred.fs, 0, 0, 1 / blurred.fs, ox, oy),
+                        ColorTransform(1, 1, 1, alpha), direct ? ob : Blend::Normal, true, &sr);
+        } else if (direct) {
+            o->filters.clear();
+            renderObject(o, m, ct, ob, pmTarget);
+            o->filters = saved;
+        } else {
+            ColorTransform pct = ct;
+            pct.am = 1;
+            drawPlain(Matrix::make(1, 0, 0, 1, ox - ax, oy - ay) * m, pct);
+        }
+    };
+    if (ob == Blend::Normal) {
+        compose(ax, ay, finalAlpha, true);
+    } else {
+        // add/screen/... apply to the object and its glow together, as one picture
+        SDL_Texture* t = renderToTexture(this, aw, ah, [&]() { compose(0, 0, 1, false); });
+        SDL_FRect sr{0, 0, (float)aw, (float)ah};
+        drawTexture(t, aw, ah, Matrix::make(1, 0, 0, 1, ax, ay), ColorTransform(1, 1, 1, finalAlpha), ob, true, &sr);
+    }
+    return true;
+}
+
 void Stage::renderFiltered(DisplayObject* o, const Matrix& m, const ColorTransform& ct, Blend blend, bool pmTarget) {
     Matrix lm = m * o->matrix();
     ColorTransform lct = o->colorTransform().concat(ct);
@@ -426,8 +583,12 @@ void Stage::renderFiltered(DisplayObject* o, const Matrix& m, const ColorTransfo
     int ax, ay, aw, ah;
     if (!areaFor(this, b, pad, ax, ay, aw, ah)) return;
 
+    stats.filtered++;
     auto filters = o->filters;
     Blend ob = o->blendMode != Blend::Normal ? o->blendMode : blend;
+    if (renderFilteredGPU(o, m, ct, ob, pmTarget, scaleOut, ax, ay, aw, ah)) return;
+    stats.readbacks++;
+    stats.readbackPx += aw * ah;
     ColorTransform inner = lct;
     double finalAlpha = inner.am;
     inner.am = 1;
@@ -485,6 +646,7 @@ void Stage::renderMasked(MovieClip* mc, std::map<int, std::shared_ptr<DisplayObj
     Rect b = (m * mask->matrix()).transformRect(mask->localBounds());
     int ax, ay, aw, ah;
     if (!areaFor(this, b, 1, ax, ay, aw, ah)) return;
+    stats.masked++;
     Matrix shift = Matrix::make(1, 0, 0, 1, -ax, -ay) * m;
     SDL_Texture* content = renderToTexture(this, aw, ah, [&]() {
         for (auto it = first; it != last; ++it) renderObject(it->second.get(), shift, ct, blend, true);
@@ -588,6 +750,55 @@ void Stage::render(bool clear) {
     renderObject(root.get(), view, ColorTransform(), Blend::Normal, false);
     SDL_SetRenderClipRect(renderer, nullptr);
     TexturePool::get().endFrame();
+    endFrameStats();
+}
+
+// ------------------------------------------------------------------ debug overlay
+
+void Stage::loadDebugPrefs() {
+    auto& so = sharedObject("pref");
+    debug.showFps = so.value("debugFps", false);
+}
+
+void Stage::saveDebugPrefs() {
+    sharedObject("pref")["debugFps"] = debug.showFps;
+    flushSharedObject("pref");
+}
+
+void Stage::drawDebugOverlay() {
+    if (!debug.showFps) return;
+    char lines[4][96];
+    SDL_snprintf(lines[0], sizeof lines[0], "%.0f FPS  game %.0f/%.0f", debug.fps, std::min(debug.tps, fps), fps);
+    SDL_snprintf(lines[1], sizeof lines[1], "update %.1f ms  draw %.1f ms", debug.updateMs, debug.drawMs);
+    SDL_snprintf(lines[2], sizeof lines[2], "glows %d  read-backs %d  masks %d", lastStats.filtered,
+                 lastStats.readbacks, lastStats.masked);
+    SDL_snprintf(lines[3], sizeof lines[3], "scratch textures %zu (%.1f MB)", TexturePool::get().count(),
+                 TexturePool::get().bytes() / 1048576.0);
+    // SDL's built-in 8x8 font, scaled with the game
+    float sc = (float)std::max(1.0, std::floor(viewScale * 0.75));
+    float x = (float)(viewX + 4 * viewScale) / sc, y = (float)(viewY + 4 * viewScale) / sc;
+    float w = 0;
+    for (auto& l : lines) w = std::max(w, (float)SDL_strlen(l) * 8);
+    SDL_SetRenderTarget(renderer, nullptr);
+    SDL_SetRenderClipRect(renderer, nullptr);
+    SDL_SetRenderScale(renderer, sc, sc);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 170);
+    SDL_FRect bg{x - 3, y - 3, w + 6, 4 * 11 + 3};
+    SDL_RenderFillRect(renderer, &bg);
+    for (int i = 0; i < 4; i++) {
+        if (i == 0) {
+            // the game runs 40 updates a second: green at full speed, amber when it slows, red when it crawls
+            double g = std::min(debug.tps, debug.fps * 4);
+            if (g >= fps * 0.95) SDL_SetRenderDrawColor(renderer, 120, 255, 140, 255);
+            else if (g >= fps * 0.7) SDL_SetRenderDrawColor(renderer, 255, 210, 80, 255);
+            else SDL_SetRenderDrawColor(renderer, 255, 90, 90, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 230, 230, 240, 255);
+        }
+        SDL_RenderDebugText(renderer, x, y + i * 11, lines[i]);
+    }
+    SDL_SetRenderScale(renderer, 1, 1);
 }
 
 // ------------------------------------------------------------------ SharedObject

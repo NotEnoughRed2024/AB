@@ -17,7 +17,7 @@ namespace site {
 
 namespace {
 struct Ui {
-    const char* tabs[Site::TabCount];
+    const char* tabs[4];
     const char* strip[3];
     const char* help;
     const char* lost;
@@ -379,7 +379,7 @@ bool Site::init(SDL_Renderer* r, const std::string& siteDir, const std::string& 
     tabSt.bold = true;
     tabSt.color = C_TAB;
     for (int i = 0; i < TabCount; i++) {
-        tabLabel[i].setPlain(ui->tabs[i], tabSt);
+        tabLabel[i].setPlain(i < 4 ? ui->tabs[i] : "DEBUG", tabSt);
         tabLabel[i].layout(0);
     }
     TextStyle stripSt;
@@ -576,9 +576,28 @@ void Site::buildHelp() {
     for (int i = 0; i < 4; i++) addCard(load(icons[i]), ui->helpCards[i][0], ui->helpCards[i][1]);
 }
 
+void Site::buildDebug() {
+    auto* st = flash::Stage::get();
+    const char* rname = SDL_GetRendererName(ren);
+    int ow = 0, oh = 0;
+    SDL_GetCurrentRenderOutputSize(ren, &ow, &oh);
+    std::string html = std::string("<a href=\"2\">") + (st->debug.showFps ? "Hide" : "Show") +
+                       " the frame rate</a> (or press <strong>F3</strong>)<br/>"
+                       "The overlay sits in the corner of the game: frames drawn per second, the time spent "
+                       "updating and drawing each frame, how many glowing or blurred objects were drawn, "
+                       "how many of them needed a slow GPU read-back, and the scratch textures in use.";
+    addCard(load("small_options.gif", true), "Frame rate", html);
+    std::string info = std::string("Renderer : <strong>") + (rname ? rname : "?") + "</strong><br/>Window : <strong>" +
+                       std::to_string(ow) + " x " + std::to_string(oh) + "</strong><br/>Game scale : <strong>" +
+                       std::to_string((int)std::lround(st->viewScale * 100)) + "%</strong><br/>Colour effects : <strong>" +
+                       (st->customBlend ? "exact (GPU blend modes)" : "approximate (no custom blend modes)") +
+                       "</strong>";
+    addCard(load("small_mode.gif", true), "Display", info);
+}
+
 std::string Site::signature() const {
     const PlayerInfo* pi = Cs::pi;
-    std::string s = std::to_string(tab_);
+    std::string s = std::to_string(tab_) + (flash::Stage::get()->debug.showFps ? "f" : "");
     if (pi)
         s += "|" + std::to_string(pi->log.size()) + "|" + std::to_string(pi->minerai) + "|" + std::to_string(pi->sectors.size()) + "|" + std::to_string(pi->x) +
              "," + std::to_string(pi->y) + "|" + std::to_string(pi->missile) + "|" + std::to_string(pi->stats.levels) +
@@ -595,6 +614,7 @@ void Site::rebuild() {
         case Missions: buildMissions(); break;
         case MyPage: buildMyPage(); break;
         case Records: buildRecords(); break;
+        case Debug: buildDebug(); break;
         default: buildHelp(); break;
     }
     double y = 0;
@@ -702,6 +722,13 @@ void Site::handleEvent(const SDL_Event& e) {
                     int l = c.body.linkAt(mx - tx, my - ty);
                     if (l == 1) {
                         setTab(Help);
+                        break;
+                    }
+                    if (l == 2) {
+                        auto* stg = flash::Stage::get();
+                        stg->debug.showFps = !stg->debug.showFps;
+                        stg->saveDebugPrefs();
+                        rebuild();
                         break;
                     }
                     if (l == 0) {

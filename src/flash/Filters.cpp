@@ -158,32 +158,56 @@ TexturePool& TexturePool::get() {
 }
 
 SDL_Texture* TexturePool::acquire(SDL_Renderer* r, int w, int h, SDL_TextureAccess access) {
-    // round up so similar sizes share textures
+    // round up so similar sizes share textures; callers address the (0,0,w,h) sub-rectangle
     int rw = (w + 31) & ~31, rh = (h + 31) & ~31;
     Key k{rw, rh, (int)access};
     SDL_Texture* t = nullptr;
     auto it = free_.find(k);
     if (it != free_.end() && !it->second.empty()) {
-        t = it->second.back();
+        t = it->second.back().t;
         it->second.pop_back();
     } else {
         t = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, access, rw, rh);
         SDL_SetTextureScaleMode(t, SDL_SCALEMODE_LINEAR);
     }
     used_.push_back({k, t});
-    // callers address the texture as w x h: report that through a sub-rect convention -> keep exact size
-    // simplest: textures are exact-size when access is streaming (UpdateTexture needs it)
     return t;
 }
 
 void TexturePool::endFrame() {
-    for (auto& [k, t] : used_) free_[k].push_back(t);
+    frame_++;
+    for (auto& [k, t] : used_) free_[k].push_back({t, frame_});
     used_.clear();
+    // textures not reused for a couple of seconds are released, so odd sizes (explosions, zooms) don't pile up
+    for (auto it = free_.begin(); it != free_.end();) {
+        auto& v = it->second;
+        v.erase(std::remove_if(v.begin(), v.end(),
+                               [&](const Free& f) {
+                                   if (frame_ - f.frame < 90) return false;
+                                   SDL_DestroyTexture(f.t);
+                                   return true;
+                               }),
+                v.end());
+        it = v.empty() ? free_.erase(it) : std::next(it);
+    }
+}
+
+size_t TexturePool::count() const {
+    size_t n = used_.size();
+    for (auto& [k, v] : free_) n += v.size();
+    return n;
+}
+
+size_t TexturePool::bytes() const {
+    size_t n = 0;
+    for (auto& [k, t] : used_) n += (size_t)std::get<0>(k) * std::get<1>(k) * 4;
+    for (auto& [k, v] : free_) n += v.size() * (size_t)std::get<0>(k) * std::get<1>(k) * 4;
+    return n;
 }
 
 void TexturePool::clear() {
     for (auto& [k, v] : free_)
-        for (auto* t : v) SDL_DestroyTexture(t);
+        for (auto& f : v) SDL_DestroyTexture(f.t);
     for (auto& [k, t] : used_) SDL_DestroyTexture(t);
     free_.clear();
     used_.clear();

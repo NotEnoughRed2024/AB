@@ -32,7 +32,7 @@ public:
     void handleEvent(const SDL_Event& e);  // call after Stage::handleEvent
     void update();  // once per frame: refresh the panel when the player's data changed
 
-    enum Tab { Missions, MyPage, Records, Help, TabCount };
+    enum Tab { Missions, MyPage, Records, Help, Debug, TabCount };
     void setTab(int t);
     int tab() const { return tab_; }
 
@@ -89,6 +89,7 @@ private:
     void buildMyPage();
     void buildRecords();
     void buildHelp();
+    void buildDebug();
     Card& addCard(Tex* icon, const std::string& title, const std::string& html, const std::string& date = "",
                   Tex* vig = nullptr);
     std::string fillPlaceholders(std::string s) const;

@@ -233,7 +233,26 @@ void BitmapData::writePixels(const std::vector<uint32_t>& px) {
     SDL_RenderTexture(stage->renderer, up, &src, nullptr);
 }
 
+// replace the bitmap's pixels with a pooled texture's (0,0,tw,th)
+static void copyInto(Stage* st, SDL_Texture* dst, SDL_Texture* src, int tw, int th) {
+    TargetScope ts(st, dst, tw, th);
+    SDL_SetTextureBlendMode(src, SDL_BLENDMODE_NONE);
+    SDL_FRect r{0, 0, (float)tw, (float)th};
+    SDL_RenderTexture(st->renderer, src, &r, &r);
+}
+
 void BitmapData::applyBlur(double bx, double by, int quality) {
+    if (!soft && texture && stage->customBlend && !SDL_getenv("AB_CPU_FILTERS")) {
+        // on the GPU: reading the pixels back every frame (the plasma trails, explosions) stalled rendering
+        double rx = std::max(0.0, bx * res - 1) / 2, ry = std::max(0.0, by * res - 1) / 2;
+        SDL_Texture* cur = texture;
+        for (int p = 0; p < std::max(1, quality); p++) {
+            cur = stage->blurTexture(cur, tw, th, rx, true);
+            cur = stage->blurTexture(cur, tw, th, ry, false);
+        }
+        if (cur != texture) copyInto(stage, texture, cur, tw, th);
+        return;
+    }
     PixelBuffer pb;
     pb.w = tw;
     pb.h = th;
@@ -243,6 +262,10 @@ void BitmapData::applyBlur(double bx, double by, int quality) {
 }
 
 void BitmapData::applyFilter(const Filter& f) {
+    if (f.type == Filter::Blur) {
+        applyBlur(f.blurX, f.blurY, f.quality);
+        return;
+    }
     PixelBuffer pb;
     pb.w = tw;
     pb.h = th;
@@ -252,6 +275,49 @@ void BitmapData::applyFilter(const Filter& f) {
 }
 
 void BitmapData::colorTransform(const ColorTransform& ct) {
+    if (!soft && texture && stage->customBlend && transparent && !SDL_getenv("AB_CPU_FILTERS")) {
+        // On the GPU, with premultiplied pixels: the multipliers are exact; offsets are applied to the
+        // premultiplied values (exact on opaque pixels, close on the fading trails this is used for), and
+        // positive colour offsets only where there is alpha, as in Flash.
+        SDL_Renderer* r = stage->renderer;
+        SDL_Texture* tmp = TexturePool::get().acquire(r, tw, th, SDL_TEXTUREACCESS_TARGET);
+        {
+            TargetScope ts(stage, tmp, tw, th);
+            SDL_SetRenderDrawColor(r, 0, 0, 0, 0);
+            SDL_RenderClear(r);
+            auto c01 = [](double v) { return (float)std::clamp(v, 0.0, 1.0); };
+            SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
+            SDL_SetTextureColorModFloat(texture, c01(ct.rm * ct.am), c01(ct.gm * ct.am), c01(ct.bm * ct.am));
+            SDL_SetTextureAlphaModFloat(texture, c01(ct.am));
+            SDL_FRect all{0, 0, (float)tw, (float)th};
+            SDL_RenderTexture(r, texture, &all, &all);
+            SDL_SetTextureColorModFloat(texture, 1, 1, 1);
+            SDL_SetTextureAlphaModFloat(texture, 1);
+            auto rect = [&](double cr, double cg, double cb, double ca, SDL_BlendMode m) {
+                SDL_SetRenderDrawBlendMode(r, m);
+                SDL_SetRenderDrawColorFloat(r, (float)cr, (float)cg, (float)cb, (float)ca);
+                SDL_RenderFillRect(r, &all);
+            };
+            double pr = std::max(0.0, ct.ra) / 255, pg = std::max(0.0, ct.ga) / 255, pb = std::max(0.0, ct.ba) / 255;
+            if (pr + pg + pb > 0)
+                rect(pr, pg, pb, 0,
+                     SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD,
+                                                SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD));
+            if (ct.aa > 0)
+                rect(0, 0, 0, ct.aa / 255,
+                     SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD,
+                                                SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD));
+            double nr = std::max(0.0, -ct.ra) / 255, ng = std::max(0.0, -ct.ga) / 255, nb = std::max(0.0, -ct.ba) / 255,
+                   na = std::max(0.0, -ct.aa) / 255;
+            if (nr + ng + nb + na > 0)
+                rect(std::max(nr, na), std::max(ng, na), std::max(nb, na), na,
+                     SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_REV_SUBTRACT,
+                                                SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE,
+                                                SDL_BLENDOPERATION_REV_SUBTRACT));
+        }
+        copyInto(stage, texture, tmp, tw, th);
+        return;
+    }
     auto px = readPixels();
     for (auto& p : px) {
         double a = p >> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
