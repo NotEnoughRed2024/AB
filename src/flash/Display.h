@@ -48,6 +48,7 @@ public:
     int timelineInstance = 0;  // >0 when placed by a timeline
     bool scripted = false;     // script touched the transform -> timeline no longer moves it
     int clipDepth = 0;         // mask layer
+    const Placement* lastPlacement = nullptr;  // the timeline placement last applied
 
     Matrix matrix() const;
     void setMatrix(const Matrix& m);

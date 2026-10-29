@@ -173,7 +173,34 @@ std::shared_ptr<DisplayObject> MovieClip::instantiate(const Placement& p) {
     return obj;
 }
 
+static bool samePlacement(const Placement& a, const Placement& b) {
+    const Matrix &m = a.matrix, &n = b.matrix;
+    if (m.a != n.a || m.b != n.b || m.c != n.c || m.d != n.d || m.tx != n.tx || m.ty != n.ty) return false;
+    if (a.hasColor != b.hasColor || a.clipDepth != b.clipDepth || a.blend != b.blend) return false;
+    if (a.hasColor) {
+        const ColorTransform &c = a.color, &d = b.color;
+        if (c.rm != d.rm || c.gm != d.gm || c.bm != d.bm || c.am != d.am || c.ra != d.ra || c.ga != d.ga ||
+            c.ba != d.ba || c.aa != d.aa)
+            return false;
+    }
+    if (a.filters.size() != b.filters.size()) return false;
+    for (size_t i = 0; i < a.filters.size(); i++) {
+        const Filter &f = a.filters[i], &g = b.filters[i];
+        if (f.type != g.type || f.blurX != g.blurX || f.blurY != g.blurY || f.strength != g.strength ||
+            f.color != g.color || f.alpha != g.alpha || f.inner != g.inner)
+            return false;
+    }
+    return true;
+}
+
 static void applyPlacement(DisplayObject* o, const Placement& p) {
+    // Flash only touches an existing object when a frame moves/changes it: a frame that repeats the same
+    // placement leaves script changes (Color objects, filters, blend modes) alone
+    if (o->lastPlacement && o->lastPlacement != &p && samePlacement(*o->lastPlacement, p)) {
+        o->lastPlacement = &p;
+        return;
+    }
+    o->lastPlacement = &p;
     if (!o->scripted) o->setMatrix(p.matrix);
     if (p.hasColor) {
         ColorTransform c = p.color;
