@@ -380,8 +380,11 @@ bool Site::init(SDL_Renderer* r, const std::string& siteDir, const std::string& 
     tabSt.size = 8.5;
     tabSt.bold = true;
     tabSt.color = C_TAB;
+    tabStyle = tabSt;
     for (int i = 0; i < TabCount; i++) {
-        tabLabel[i].setPlain(i < 4 ? ui->tabs[i] : "DEBUG", tabSt);
+        tabText[i] = i < 4 ? ui->tabs[i]
+                           : i == Universe ? tr("UNIVERSE MAP", "UNIVERS", "UNIVERSUM", "UNIVERSO") : std::string("DEBUG");
+        tabLabel[i].setPlain(tabText[i], tabSt);
         tabLabel[i].layout(0);
     }
     TextStyle stripSt;
@@ -444,6 +447,19 @@ void Site::layout() {
     content = {panel.x + 6, panel.y + 30, panel.w - 12 - 14, panel.h - 36};
     double tw = std::min(79.0, (panel.w - 14) / TabCount - 2);
     for (int i = 0; i < TabCount; i++) tabsR[i] = {panel.x + 7 + i * (tw + 2), panel.y - 4, tw, 22};
+    // a label too long for its tab ("UNIVERSE MAP") is set smaller
+    if (tw != tabFitW) {
+        tabFitW = tw;
+        for (int i = 0; i < TabCount; i++) {
+            TextStyle st = tabStyle;
+            for (int k = 0; k < 8; k++) {
+                tabLabel[i].setPlain(tabText[i], st);
+                tabLabel[i].layout(0);
+                if (tabLabel[i].width() <= tw - 6) break;
+                st.size -= 0.5;
+            }
+        }
+    }
     helpBtn = {strip.x + strip.w - 57, strip.y + 2, 53, 27};
     scrollTrack = {content.x + content.w + 3, content.y, 10, content.h};
     st->gameRect = {(float)(game.x * u), (float)(game.y * u), (float)(game.w * u), (float)(game.h * u)};
@@ -692,6 +708,7 @@ void Site::rebuild() {
         case MyPage: buildMyPage(); break;
         case Records: buildRecords(); break;
         case Debug: buildDebug(); break;
+        case Universe: break;  // drawn straight into the panel
         default: buildHelp(); break;
     }
     double y = 0;
@@ -718,6 +735,7 @@ void Site::rebuild() {
 
 void Site::setTab(int tb) {
     if (tb < 0 || tb >= TabCount) return;
+    if (tb == Universe && tab_ != Universe) centreUniverse();
     if (tb != tab_) scrollY = 0;
     tab_ = tb;
     rebuild();
@@ -747,6 +765,10 @@ void Site::handleEvent(const SDL_Event& e) {
                 double s = widgetR.w / Inventory::W;
                 inventory.pointer((mx - widgetR.x) / s, (my - widgetR.y) / s, in);
             }
+            if (uniDrag) {
+                uniCX = uniDragCX - (mx - uniDragX) / uniZoom;
+                uniCY = uniDragCY - (my - uniDragY) / uniZoom;
+            }
             if (dragThumb) {
                 double range = scrollTrack.h - scrollThumb.h;
                 if (range > 0) scrollY = (my - dragOffset - scrollTrack.y) / range * (contentH - content.h);
@@ -756,6 +778,7 @@ void Site::handleEvent(const SDL_Event& e) {
             if (!st->pointerInGame) {
                 for (auto& r : tabsR) over |= r.has(mx, my);
                 over |= helpBtn.has(mx, my);
+                if (tab_ == Universe) over |= uniBtn.has(mx, my);
                 if (content.has(mx, my))
                     for (auto& c : cards) {
                         double tx = content.x + (c.info ? 28 : (c.vig ? 64 : 8));
@@ -773,7 +796,9 @@ void Site::handleEvent(const SDL_Event& e) {
             float wx, wy;
             SDL_GetMouseState(&wx, &wy);
             toPage(wx, wy);
-            if (panel.has(mx, my)) {
+            if (tab_ == Universe && content.has(mx, my)) {
+                zoomUniverse(std::pow(1.25, e.wheel.y), mx, my);
+            } else if (panel.has(mx, my)) {
                 scrollY -= e.wheel.y * 48;
                 clampScroll();
             }
@@ -785,6 +810,17 @@ void Site::handleEvent(const SDL_Event& e) {
             for (int i = 0; i < TabCount; i++)
                 if (tabsR[i].has(mx, my)) setTab(i);
             if (helpBtn.has(mx, my)) setTab(Help);
+            if (tab_ == Universe && content.has(mx, my) && !st->pointerInGame) {
+                if (uniBtn.has(mx, my)) {
+                    centreUniverse();
+                } else {
+                    uniDrag = true;
+                    uniDragX = mx;
+                    uniDragY = my;
+                    uniDragCX = uniCX;
+                    uniDragCY = uniCY;
+                }
+            }
             if (hasThumb && scrollThumb.has(mx, my)) {
                 dragThumb = true;
                 dragOffset = my - scrollThumb.y;
@@ -829,7 +865,7 @@ void Site::handleEvent(const SDL_Event& e) {
             break;
         }
         case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (e.button.button == SDL_BUTTON_LEFT) dragThumb = false;
+            if (e.button.button == SDL_BUTTON_LEFT) dragThumb = uniDrag = false;
             break;
         case SDL_EVENT_KEY_DOWN:
             if (e.key.key == SDLK_PAGEUP || e.key.key == SDLK_PAGEDOWN) {
@@ -926,6 +962,15 @@ void Site::drawPanel() {
         l.draw(r.x + (r.w - l.width()) / 2, r.y + 3 + (19 - l.height()) / 2 + 1, u);
     }
 
+    if (tab_ == Universe) {
+        clip(&content);
+        drawUniverse();
+        clip(nullptr);
+        hasThumb = false;
+        fill(scrollTrack, 0x1E2548, 0.8);
+        return;
+    }
+
     // feed
     clip(&content);
     for (auto& c : cards) {
@@ -968,6 +1013,107 @@ void Site::drawPanel() {
         scrollThumb = {scrollTrack.x + 1, ty, scrollTrack.w - 2, th};
         fill(scrollThumb, dragThumb ? 0xE0E4F0 : 0xB8C0D8, 1);
     }
+}
+
+// ------------------------------------------------------------------ universe map
+
+void Site::centreUniverse() {
+    if (!Cs::pi) return;
+    uniCX = Cs::pi->x + 0.5;
+    uniCY = Cs::pi->y + 0.5;
+    uniCentred = true;
+}
+
+void Site::zoomUniverse(double factor, double px, double py) {
+    // keep the sector under the pointer where it is
+    double cx = content.x + content.w / 2, cy = content.y + content.h / 2;
+    double sx = uniCX + (px - cx) / uniZoom, sy = uniCY + (py - cy) / uniZoom;
+    double minZ = std::min(content.w / 1186.0, content.h / 1199.0) * 0.9;
+    uniZoom = std::clamp(uniZoom * factor, minZ, 16.0);
+    uniCX = sx - (px - cx) / uniZoom;
+    uniCY = sy - (py - cy) / uniZoom;
+}
+
+void Site::drawUniverse() {
+    const PlayerInfo* pi = Cs::pi;
+    if (!uniCentred) centreUniverse();
+    fill(content, 0x000028, 1);
+    double z = uniZoom;
+    double cx = content.x + content.w / 2, cy = content.y + content.h / 2;
+    auto toPage = [&](double sx, double sy) { return std::pair<double, double>{cx + (sx - uniCX) * z, cy + (sy - uniCY) * z}; };
+    // keep some of the map in view
+    uniCX = std::clamp(uniCX, -(double)UNI_OX - 50, 1186.0 - UNI_OX + 50);
+    uniCY = std::clamp(uniCY, -(double)UNI_OY - 50, 1199.0 - UNI_OY + 50);
+
+    if (Tex* img = load("universe.png", true)) {
+        SDL_SetTextureScaleMode(img->t, z * u >= 3 ? SDL_SCALEMODE_NEAREST : SDL_SCALEMODE_LINEAR);
+        auto [x0, y0] = toPage(-UNI_OX, -UNI_OY);
+        SDL_FRect d{(float)(x0 * u), (float)(y0 * u), (float)(img->w * z * u), (float)(img->h * z * u)};
+        SDL_RenderTexture(ren, img->t, nullptr, &d);
+    }
+    // the sectors played: cleared ones in green, lost ones in red
+    if (pi)
+        for (auto& [k, v] : pi->sectors) {
+            auto [x, y] = toPage(k.first, k.second);
+            double s = std::max(z, 1.5);
+            fill({x + (z - s) / 2, y + (z - s) / 2, s, s}, v == 1 ? 0x40E060 : 0xE04040, 0.7);
+        }
+    // the player
+    if (pi) {
+        auto [px, py] = toPage(pi->x + 0.5, pi->y + 0.5);
+        double ix = std::clamp(px, content.x + 6, content.x + content.w - 6);
+        double iy = std::clamp(py, content.y + 30, content.y + content.h - 6);
+        double t = SDL_GetTicks() / 1000.0;
+        double r = 5 + 3 * (0.5 + 0.5 * std::sin(t * 5));
+        fill({ix - r, iy - 0.5, r * 2 + 1, 1}, 0xFFE060, 1);
+        fill({ix - 0.5, iy - r, 1, r * 2 + 1}, 0xFFE060, 1);
+        fill({ix - 2, iy - 2, 4, 4}, 0xFFFFFF, 1);
+        TextStyle ps;
+        ps.size = 9;
+        ps.bold = true;
+        ps.color = 0xFFE060;
+        RichText me;
+        me.setPlain("[" + std::to_string(pi->x) + "][" + std::to_string(pi->y) + "]", ps);
+        me.layout(0);
+        me.draw(std::min(ix + 8, content.x + content.w - me.width() - 4), iy - me.height() - 2, u);
+    }
+    // header: where the pointer is, and how to move around
+    fill({content.x, content.y, content.w, 24}, 0x1E2548, 0.85);
+    TextStyle st;
+    st.size = 9;
+    st.color = C_TEXT;
+    TextStyle hi = st;
+    hi.bold = true;
+    hi.color = C_STRONG;
+    std::vector<Span> spans;
+    if (content.has(mx, my) && my > content.y + 24) {
+        int sx = (int)std::floor(uniCX + (mx - cx) / z), sy = (int)std::floor(uniCY + (my - cy) / z);
+        spans.push_back({"[" + std::to_string(sx) + "][" + std::to_string(sy) + "]", hi});
+        int planet = ZoneInfo::getPlanet(sx, sy);
+        if (planet >= 0 && planet < (int)ZoneInfo::list.size()) spans.push_back({"  " + ZoneInfo::list[planet].name, st});
+        if (pi) {
+            int stt = pi->sectorState(sx, sy);
+            if (stt == 1) spans.push_back({tr("  - cleared", "  - nettoy\xC3\xA9", "  - ger\xC3\xA4umt", "  - limpiado"), st});
+            else if (stt == 0) spans.push_back({tr("  - lost", "  - perdu", "  - verloren", "  - perdido"), st});
+        }
+    } else {
+        spans.push_back({tr("Drag to move, wheel to zoom", "Glisser pour d\xC3\xA9placer, molette pour zoomer",
+                            "Ziehen zum Verschieben, Mausrad zum Zoomen", "Arrastra para mover, rueda para ampliar"),
+                         st});
+    }
+    RichText info;
+    info.set(spans);
+    info.layout(0);
+    info.draw(content.x + 6, content.y + (24 - info.height()) / 2, u);
+    TextStyle bs = st;
+    bs.bold = true;
+    bs.color = 0xFFFFFF;
+    RichText btn;
+    btn.setPlain(tr("Centre on me", "Me centrer", "Auf mich zentrieren", "Centrar en m\xC3\xAD"), bs);
+    btn.layout(0);
+    uniBtn = {content.x + content.w - btn.width() - 16, content.y + 3, btn.width() + 10, 18};
+    fill(uniBtn, uniBtn.has(mx, my) ? 0x6A7CC8 : 0x4A5CA8, 1);
+    btn.draw(uniBtn.x + 5, uniBtn.y + (18 - btn.height()) / 2, u);
 }
 
 void Site::render() {

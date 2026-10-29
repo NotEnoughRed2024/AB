@@ -33,7 +33,7 @@ public:
     void handleEvent(const SDL_Event& e);  // call after Stage::handleEvent
     void update();  // once per frame: refresh the panel when the player's data changed
 
-    enum Tab { Missions, MyPage, Records, Help, Debug, TabCount };
+    enum Tab { Missions, MyPage, Records, Help, Universe, Debug, TabCount };
     void setTab(int t);
     int tab() const { return tab_; }
 
@@ -80,6 +80,9 @@ private:
     SDL_Cursor* arrow = nullptr;
     bool handShown = false;
 
+    std::string tabText[TabCount];
+    TextStyle tabStyle;
+    double tabFitW = -1;
     RichText tabLabel[TabCount], stripText[3], helpLabel, minerals, footer;
     bool hideCompleted = false;
     std::set<int> dismissed;  // missions removed from the feed
@@ -87,6 +90,15 @@ private:
     void saveFeedPrefs();
     std::string tr(const char* en, const char* fr, const char* de, const char* es) const;
     Inventory inventory;
+    // Universe map: the whole galaxy, one image pixel per sector, panned and zoomed in the panel
+    static constexpr int UNI_OX = 585, UNI_OY = 599;  // image pixel of sector [0][0]
+    double uniZoom = 2, uniCX = 0, uniCY = 0;         // page px per sector, centre of the view (sectors)
+    bool uniCentred = false, uniDrag = false;
+    double uniDragX = 0, uniDragY = 0, uniDragCX = 0, uniDragCY = 0;
+    R uniBtn;  // "centre on me"
+    void centreUniverse();
+    void zoomUniverse(double factor, double px, double py);
+    void drawUniverse();
     R widgetR;  // where the inventory was drawn (page px), for the pointer
 
     std::string signature() const;

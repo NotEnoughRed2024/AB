@@ -10,7 +10,7 @@
 //   --scale N             window scale (default: fit the screen)
 //   --fullscreen          start in full screen (F11 or Alt+Enter toggles)
 //   --bare                just the game, without the page around it
-//   --tab N               open the page on tab N (0 missions, 1 my page, 2 records, 3 help)
+//   --tab N               open the page on tab N (0 missions, 1 my page, 2 records, 3 help, 4 universe map, 5 debug)
 //   --size WxH            window size in pixels (testing)
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
