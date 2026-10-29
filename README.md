@@ -34,7 +34,9 @@ Rather than redraw anything, the port keeps the original art and behaviour:
   (`assets/site/`, copied by `tools/site_assets.py`). The game sits in the left panel at its original
   400×360 ratio and scales with the window; the right panel stretches to fill the width:
   - **Missions**: the news feed of received and completed missions, with their vignettes and dates.
-  - **My Page**: envelope status, collected equipment and astroport purchases.
+  - **My Page**: the site's inventory widget (`web/swf/inv.swf`), rebuilt in C++ from the compiled swf
+    (its source isn't in the archive; `tools/avm1dis.py`/`avm1dec.py` decompile it), with its own art,
+    layout and hint texts (`data/inv_*.json`).
   - **Records**: replaces the online rankings with your own figures (sectors cleared, minerals, play time…).
   - **Help**: controls and a short guide. Bank and Forum were online-only and are left out.
 
@@ -91,6 +93,7 @@ cd WebGamesArchives && git sparse-checkout set Alphabounce && cd ..
 pip install pillow playwright && playwright install chromium
 python3 tools/swfconv/convert.py WebGamesArchives/Alphabounce/client/swf/gfx.swf assets --vector mcShape,mcBrush,mcLuz
 python3 tools/swfconv/convert.py WebGamesArchives/Alphabounce/web/swf/planet.swf assets --name planet
+python3 tools/swfconv/convert.py WebGamesArchives/Alphabounce/web/swf/inv.swf assets --name inv
 python3 tools/gen_data.py WebGamesArchives/Alphabounce data
 python3 tools/site_assets.py WebGamesArchives/Alphabounce assets
 ```

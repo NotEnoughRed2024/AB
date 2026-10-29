@@ -82,11 +82,23 @@ double DisplayObject::height() const {
     return r.height();
 }
 void DisplayObject::setWidth(double w) {
+    if (kind == KText) {  // a text field's _width resizes the box, it doesn't scale the text
+        auto* tf = static_cast<TextField*>(this);
+        tf->width_ = w;
+        tf->dirty = true;
+        return;
+    }
     Rect lb = localBounds();
     if (lb.width() > 0) xscale = w / lb.width() * 100.0;
     scripted = true;
 }
 void DisplayObject::setHeight(double h) {
+    if (kind == KText) {
+        auto* tf = static_cast<TextField*>(this);
+        tf->height_ = h;
+        tf->dirty = true;
+        return;
+    }
     Rect lb = localBounds();
     if (lb.height() > 0) yscale = h / lb.height() * 100.0;
     scripted = true;

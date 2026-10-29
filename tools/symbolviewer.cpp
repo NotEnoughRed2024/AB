@@ -31,21 +31,23 @@ int main(int argc, char** argv) {
     std::string dir = argv[1];
     const char* shot = nullptr;
     int frames = 1;
+    std::string libName = "gfx";
     std::vector<std::string> names;
     for (int i = 2; i < argc; i++) {
         std::string a = argv[i];
         if (a == "--shot" && i + 1 < argc) shot = argv[++i];
         else if (a == "--frames" && i + 1 < argc) frames = std::atoi(argv[++i]);
+        else if (a == "--lib" && i + 1 < argc) libName = argv[++i];
         else names.push_back(a);
     }
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* win = SDL_CreateWindow("symbolviewer", 800, 720, shot ? SDL_WINDOW_HIDDEN : 0);
+    SDL_Window* win = SDL_CreateWindow("symbolviewer", 920, 720, shot ? SDL_WINDOW_HIDDEN : 0);
     SDL_Renderer* ren = SDL_CreateRenderer(win, nullptr);
-    Stage stage(win, ren, 400, 360, 40);
-    if (!stage.loadLibrary(dir, "gfx")) return 1;
+    Stage stage(win, ren, 460, 360, 40);
+    if (!stage.loadLibrary(dir, libName)) return 1;
     auto bg = stage.root->createEmptyMovieClip("bg", 0);
     int d = 1;
     double x = 40, y = 40;

@@ -248,8 +248,9 @@ SDL_BlendMode Stage::sdlBlend(Blend b, bool pm) const {
             return SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MAXIMUM,
                                               SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MAXIMUM);
         case Blend::Darken:
-            return SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MINIMUM,
-                                              SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MAXIMUM);
+            // GPU MIN ignores the blend factors, so transparent texels (black) would darken everything they
+            // cover; multiply darkens the same way while honouring alpha
+            return SDL_BLENDMODE_MUL;
         case Blend::Erase:
             return SDL_ComposeCustomBlendMode(SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
                                               SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO,

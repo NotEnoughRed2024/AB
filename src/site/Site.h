@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "Inventory.h"
 #include "RichText.h"
 #include "json.hpp"
 
@@ -42,6 +43,8 @@ private:
         RichText title, date, body;
         bool info = false;  // the "if you are lost" style box
         double head = 22;   // header height (34 when the date goes under the title)
+        bool compact = false;  // body follows the title without the vignette column
+        bool widget = false;   // the inventory widget
         double y = 0, h = 0;
     };
     struct R {
@@ -77,6 +80,8 @@ private:
     bool handShown = false;
 
     RichText tabLabel[TabCount], stripText[3], helpLabel, minerals;
+    Inventory inventory;
+    R widgetR;  // where the inventory was drawn (page px), for the pointer
 
     std::string signature() const;
     void rebuild();

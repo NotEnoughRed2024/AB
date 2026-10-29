@@ -175,6 +175,13 @@ void TextField::layout() {
         const Font* f = base;
         if (sp.bold) {
             if (const Font* bf = lib->fontByName(base->name, true)) f = bf;
+        } else if (htmlMode && base->bold) {
+            // html text in a bold field: plain runs use the regular face when it's embedded
+            std::string n = base->name;
+            size_t b = n.find(" Bold");
+            if (b != std::string::npos) n.erase(b);
+            const Font* rf = lib->fontByName(n, false);
+            if (rf && !rf->bold) f = rf;
         }
         for (size_t i = 0; i < sp.text.size();) {
             unsigned cp = nextCodepoint(sp.text, i);

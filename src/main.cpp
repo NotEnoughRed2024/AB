@@ -140,6 +140,7 @@ int main(int argc, char** argv) {
         struct TestClick {
             int frame;
             double x, y;
+            bool window = false;  // "w" prefix: window pixels instead of stage coordinates
         };
         std::vector<TestClick> clicks;
         if (const char* tc = SDL_getenv("AB_TEST_CLICKS")) {
@@ -149,6 +150,10 @@ int main(int argc, char** argv) {
                 size_t e = all.find(';', p);
                 std::string item = all.substr(p, e == std::string::npos ? std::string::npos : e - p);
                 TestClick c{};
+                if (!item.empty() && item[0] == 'w') {
+                    c.window = true;
+                    item = item.substr(1);
+                }
                 if (std::sscanf(item.c_str(), "%d:%lf,%lf", &c.frame, &c.x, &c.y) == 3) clicks.push_back(c);
                 if (e == std::string::npos) break;
                 p = e + 1;
@@ -157,6 +162,10 @@ int main(int argc, char** argv) {
         auto injectClicks = [&](int frame) {
             for (auto& c : clicks) {
                 float wx = (float)(stage.viewX + c.x * stage.viewScale), wy = (float)(stage.viewY + c.y * stage.viewScale);
+                if (c.window) {
+                    wx = (float)c.x;
+                    wy = (float)c.y;
+                }
                 SDL_Event ev{};
                 if (c.frame == frame) {
                     ev.type = SDL_EVENT_MOUSE_MOTION;

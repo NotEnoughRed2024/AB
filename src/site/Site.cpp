@@ -21,6 +21,8 @@ struct Ui {
     const char* help;
     const char* lost;
     const char* pilot;
+    const char* prisonerFor;  // %d days
+    const char* exploration;
     // My Page
     const char* myTitle;
     const char* position;
@@ -60,6 +62,8 @@ const Ui UI_EN = {
     "HELP",
     "If you are lost, you can consult <a href=\"1\">THE GAME HELP</a>.",
     "Pilot",
+    "a prisoner for %d days",
+    "Exploration",
     "Envelope status",
     "Position",
     "Minerals",
@@ -112,6 +116,8 @@ const Ui UI_FR = {
     "AIDE",
     "Si vous \xC3\xAAtes perdu, vous pouvez consulter <a href=\"1\">L'AIDE DU JEU</a>.",
     "Pilote",
+    "prisonnier depuis %d jours",
+    "Exploration",
     "\xC3\x89tat de l'enveloppe",
     "Position",
     "Minerai",
@@ -166,6 +172,8 @@ const Ui UI_DE = {
     "HILFE",
     "Wenn du nicht weiterwei\xC3\x9Ft, lies die <a href=\"1\">SPIELHILFE</a>.",
     "Pilot",
+    "seit %d Tagen H\xC3\xA4" "ftling",
+    "Erkundung",
     "Zustand der H\xC3\xBClle",
     "Position",
     "Mineralien",
@@ -220,6 +228,8 @@ const Ui UI_ES = {
     "AYUDA",
     "Si est\xC3\xA1s perdido, puedes consultar <a href=\"1\">LA AYUDA DEL JUEGO</a>.",
     "Piloto",
+    "prisionero desde hace %d d\xC3\xAD" "as",
+    "Exploraci\xC3\xB3n",
     "Estado de la envoltura",
     "Posici\xC3\xB3n",
     "Minerales",
@@ -346,6 +356,12 @@ bool Site::init(SDL_Renderer* r, const std::string& siteDir, const std::string& 
     if (!tex["frame"].t) {
         SDL_Log("site: page graphics missing in %s", dir.c_str());
         return false;
+    }
+    {
+        std::string assets = siteDir;
+        size_t cut = assets.find_last_of("/\\");
+        assets = cut == std::string::npos ? "." : assets.substr(0, cut);
+        if (!inventory.init(assets, dataDir, lang)) SDL_Log("site: inventory art (assets/inv.json) missing");
     }
     hand = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
     arrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
@@ -505,44 +521,20 @@ void Site::buildMissions() {
 void Site::buildMyPage() {
     const PlayerInfo* pi = Cs::pi;
     if (!pi) return;
-    auto row = [](const char* label, const std::string& v) {
-        return std::string(label) + " : <strong>" + v + "</strong><br/>";
-    };
+    // header line of the page, then the inventory widget (inv.swf)
+    long long days = pi->stats.firstPlayed > 0 ? ((long long)time(nullptr) - pi->stats.firstPlayed) / 86400 : 0;
+    char daysBuf[128];
+    SDL_snprintf(daysBuf, sizeof daysBuf, ui->prisonerFor, (int)days);
     std::string where = "[" + std::to_string(pi->x) + "][" + std::to_string(pi->y) + "]";
-    int planet = ZoneInfo::getPlanet(pi->x, pi->y);
-    if (planet >= 0 && planet < (int)ZoneInfo::list.size()) where += " " + ZoneInfo::list[planet].name;
-    int done = 0;
-    for (int i = 0; i < pi->missions.size(); i++)
-        if (pi->missions.get(i) == 1) done++;
-    std::string html = row(ui->position, "<em>" + where + "</em>") + row(ui->minerals, numStr(pi->minerai)) +
-                       row(ui->envelopes, std::to_string(pi->getLife())) +
-                       row(ui->missiles, std::to_string(pi->missile) + " / " + std::to_string(pi->missileMax)) +
-                       row(ui->engine, std::to_string(pi->engine)) + row(ui->radar, std::to_string(pi->radar)) +
-                       (pi->drone > 0 ? row(ui->drones, std::to_string(pi->drone)) : std::string()) +
-                       row(ui->missionsDone, std::to_string(done)) +
-                       row(ui->fuel, std::to_string(pi->chl) + " + " + std::to_string(pi->chs)) +
-                       "<p>" + ui->fuelFree + "</p>";
-    addCard(load("small_pad.gif"), pilotName() + " - " + ui->myTitle, html, "", load("faq_pad.gif"));
-
-    std::string items;
-    for (int i = 0; i < pi->items.size(); i++) {
-        if (!pi->gotItem(i)) continue;
-        std::string name = Text::at("ITEM_NAMES", i);
-        if (name.empty() || name.find_first_not_of("- ") == std::string::npos) continue;
-        if (!items.empty()) items += ", ";
-        items += name;
+    std::string html = std::string(ui->position) + " : <em>" + where + "</em> &nbsp; " + daysBuf + " &nbsp; " +
+                       ui->exploration + " : <strong>" + numStr(pi->stats.cleared) + "</strong>";
+    Card& head = addCard(load("small_pad.gif"), pilotName(), html);
+    head.compact = true;
+    if (inventory.ready()) {
+        inventory.build();
+        cards.emplace_back();
+        cards.back().widget = true;
     }
-    addCard(load("small_earth.gif"), ui->items, items.empty() ? std::string(ui->none) : items);
-
-    std::string shop;
-    for (int i = 0; i < pi->shopItems.size(); i++) {
-        if (pi->shopItems.get(i) != 1) continue;
-        std::string name = Text::at("SHOP_ITEM_NAMES", i);
-        if (name.empty() || name.find_first_not_of("- ") == std::string::npos) continue;
-        if (!shop.empty()) shop += ", ";
-        shop += name;
-    }
-    addCard(load("small_money.gif"), ui->shop, shop.empty() ? std::string(ui->none) : shop);
 }
 
 void Site::buildRecords() {
@@ -585,6 +577,7 @@ std::string Site::signature() const {
 
 void Site::rebuild() {
     cards.clear();
+    widgetR = R();
     builtWidth = content.w;
     builtSig = signature();
     switch (tab_) {
@@ -596,7 +589,9 @@ void Site::rebuild() {
     double y = 0;
     for (auto& c : cards) {
         c.y = y;
-        if (c.info) {
+        if (c.widget) {
+            c.h = Inventory::H * std::min(content.w / Inventory::W, 2.5);
+        } else if (c.info) {
             c.body.layout(content.w - 34);
             c.h = std::max(18.0, c.body.height()) + 12;
         } else {
@@ -624,6 +619,7 @@ void Site::clampScroll() { scrollY = std::max(0.0, std::min(scrollY, std::max(0.
 
 void Site::update() {
     if (signature() != builtSig) rebuild();
+    if (tab_ == MyPage) inventory.update();
 }
 
 // ------------------------------------------------------------------ input
@@ -638,6 +634,11 @@ void Site::handleEvent(const SDL_Event& e) {
     switch (e.type) {
         case SDL_EVENT_MOUSE_MOTION: {
             toPage(e.motion.x, e.motion.y);
+            if (tab_ == MyPage && widgetR.w > 0) {
+                bool in = !st->pointerInGame && content.has(mx, my) && widgetR.has(mx, my);
+                double s = widgetR.w / Inventory::W;
+                inventory.pointer((mx - widgetR.x) / s, (my - widgetR.y) / s, in);
+            }
             if (dragThumb) {
                 double range = scrollTrack.h - scrollThumb.h;
                 if (range > 0) scrollY = (my - dragOffset - scrollTrack.y) / range * (contentH - content.h);
@@ -803,6 +804,13 @@ void Site::drawPanel() {
         double y = content.y + c.y - scrollY;
         if (y > content.y + content.h || y + c.h < content.y) continue;
         R box{content.x, y, content.w, c.h};
+        if (c.widget) {
+            double sc = std::min(content.w / Inventory::W, 2.5);
+            double wx = content.x + (content.w - Inventory::W * sc) / 2;
+            widgetR = {wx, y, Inventory::W * sc, Inventory::H * sc};
+            inventory.render(wx * u, y * u, sc * u);
+            continue;
+        }
         if (c.info) {
             fill(box, C_INFO, 0.85);
             if (c.icon) blit(c.icon, box.x + 6, y + (c.h - c.icon->h) / 2);
