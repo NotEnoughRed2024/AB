@@ -825,6 +825,7 @@ void Map::initConnexion() {
 void Map::setInfos() {
     Shell::get()->reloadPlayer();
     placeEarth();
+    Cs::pi->computeComp();  // Earth has just been placed
     if (game) {
         game.reset();
         mcGame = nullptr;

@@ -444,7 +444,33 @@ int PlayerInfo::getPrice(int id) const {
     return p;
 }
 
+// The website's server sent `comp`: how much of each planet has been explored, i.e. the share of the
+// planet's squares on the galaxy map that have been cleared. A square belongs to the last zone whose
+// circle covers it, as on the map.
+void PlayerInfo::computeComp() {
+    int n = (int)ZoneInfo::list.size();
+    if ((int)comp.size() < n) comp.resize(n, 0);
+    for (int id = 0; id < n; id++) {
+        const Zone& z = ZoneInfo::list[id];
+        int r = z.pos[2], total = 0, done = 0;
+        for (int wx = z.pos[0] - r; wx <= z.pos[0] + r - 1; wx++)
+            for (int wy = z.pos[1] - r; wy <= z.pos[1] + r - 1; wy++) {
+                if (!ZoneInfo::isInCircle(wx, wy, z.pos[0], z.pos[1], r)) continue;
+                bool later = false;
+                for (int k = id + 1; k < n && !later; k++) {
+                    const Zone& o = ZoneInfo::list[k];
+                    if (o.pos[2] > 0 && ZoneInfo::isInCircle(wx, wy, o.pos[0], o.pos[1], o.pos[2])) later = true;
+                }
+                if (later) continue;
+                total++;
+                if (sectorState(wx, wy) == 1) done++;
+            }
+        comp[id] = total > 0 ? (done * 100) / total : 0;
+    }
+}
+
 void PlayerInfo::checkMission() {
+    computeComp();
     for (int n = 0; n < (int)MissionInfo::LIST.size(); n++) {
         const Mission& mi = MissionInfo::LIST[n];
         if (missions.get(n) == 0 && isAllConditionsOk(mi.conditions)) {

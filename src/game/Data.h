@@ -148,6 +148,7 @@ public:
     void buyShopItem(int id);
     int getPrice(int id) const;
     void checkMission();
+    void computeComp();  // planet exploration % from the cleared squares
     bool isAllConditionsOk(const std::vector<std::vector<int>>& list) const;
     bool isConditionOk(const std::vector<int>& a) const;
     void addStuff(const std::vector<int>& a);
