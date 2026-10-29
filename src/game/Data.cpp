@@ -255,9 +255,12 @@ void PlayerInfo::loadCache() {
     y = so.value("y", 0);
     ox = so.contains("ox") && so["ox"].is_number() ? (int)so["ox"] : x;
     oy = so.contains("oy") && so["oy"].is_number() ? (int)so["oy"] : y;
+    // `square` is the area of the server's daily "zone cleanup" mission (the ES frame on the map). The
+    // offline build saved a fixed test value [0,5,3] whatever the missions were; that one is dropped.
     square.clear();
     if (so["square"].is_array())
         for (auto& n : so["square"]) square.push_back(n.is_number() ? (int)n : 0);
+    if (square == std::vector<int>{0, 5, 3} && !so.value("squareReal", false)) square.clear();
     chl = so.value("chl", 0);
     chs = so.value("chs", 0);
     minerai = so.value("minerai", 0);
@@ -353,7 +356,12 @@ void PlayerInfo::saveCache() {
     so["radar"] = radar;
     so["life"] = life;
     so["drone"] = drone;
-    so["square"] = {0, 5, 3};
+    if (square.size() >= 3) {
+        so["square"] = square;
+        so["squareReal"] = true;
+    } else {
+        so["square"] = nullptr;
+    }
     so["items"] = items.toJson();
     so["shopItems"] = shopItems.toJson();
     so["comp"] = comp;

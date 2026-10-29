@@ -6,6 +6,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -79,7 +80,12 @@ private:
     SDL_Cursor* arrow = nullptr;
     bool handShown = false;
 
-    RichText tabLabel[TabCount], stripText[3], helpLabel, minerals;
+    RichText tabLabel[TabCount], stripText[3], helpLabel, minerals, footer;
+    bool hideCompleted = false;
+    std::set<int> dismissed;  // missions removed from the feed
+    void loadFeedPrefs();
+    void saveFeedPrefs();
+    std::string tr(const char* en, const char* fr, const char* de, const char* es) const;
     Inventory inventory;
     R widgetR;  // where the inventory was drawn (page px), for the pointer
 

@@ -758,10 +758,12 @@ void Stage::render(bool clear) {
 void Stage::loadDebugPrefs() {
     auto& so = sharedObject("pref");
     debug.showFps = so.value("debugFps", false);
+    debug.freeTravel = so.value("debugFreeTravel", false);
 }
 
 void Stage::saveDebugPrefs() {
     sharedObject("pref")["debugFps"] = debug.showFps;
+    sharedObject("pref")["debugFreeTravel"] = debug.freeTravel;
     flushSharedObject("pref");
 }
 
@@ -777,6 +779,11 @@ void Stage::drawDebugOverlay() {
     // SDL's built-in 8x8 font, scaled with the game
     float sc = (float)std::max(1.0, std::floor(viewScale * 0.75));
     float x = (float)(viewX + 4 * viewScale) / sc, y = (float)(viewY + 4 * viewScale) / sc;
+    if (debug.anchorX >= 0) {  // the page puts it over its logo, out of the game's way
+        sc = (float)std::max(1.0, std::floor(debug.anchorScale));
+        x = (float)debug.anchorX / sc;
+        y = (float)debug.anchorY / sc;
+    }
     float w = 0;
     for (auto& l : lines) w = std::max(w, (float)SDL_strlen(l) * 8);
     SDL_SetRenderTarget(renderer, nullptr);

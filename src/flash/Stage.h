@@ -77,6 +77,8 @@ public:
     // debug overlay (Debug tab / F3)
     struct Debug {
         bool showFps = false;
+        bool freeTravel = false;          // map: any square can be visited, no fuel/range checks
+        double anchorX = -1, anchorY = -1, anchorScale = 0;  // where the page wants the overlay (window px)
         double fps = 0, tps = 0, updateMs = 0, drawMs = 0;
     } debug;
     void loadDebugPrefs();

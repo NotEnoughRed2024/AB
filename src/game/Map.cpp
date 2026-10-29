@@ -125,7 +125,9 @@ void Map::updateCoord() {
     PlayerInfo* pi = Cs::pi;
     bool flFarWarning = false;
     auto rc = reach.find({p.x - SX, p.y - SY});
-    if (rc != reach.end() && rc->second) {
+    if (flash::Stage::get()->debug.freeTravel) {  // Debug tab: every square is reachable, no warnings
+        if (mcCoord->currentFrame() == 2) mcCoord->gotoAndStop(1);
+    } else if (rc != reach.end() && rc->second) {
         if (mcCoord->currentFrame() == 2) mcCoord->gotoAndStop(1);
         if (!pi->gotItem(MissionInfo::BALL_DRILL) && std::max(std::abs(p.x), std::abs(p.y)) >= 3) {
             flFarWarning = true;
@@ -748,6 +750,10 @@ void Map::drawFog() {
 
 void Map::clickMap() {
     P p = getMouseSector();
+    if (flash::Stage::get()->debug.freeTravel) {  // Debug tab: go anywhere
+        callPlay(p.x, p.y);
+        return;
+    }
     if (!flFuel) {
         initBoxFuel();
         return;

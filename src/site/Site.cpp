@@ -394,6 +394,19 @@ bool Site::init(SDL_Renderer* r, const std::string& siteDir, const std::string& 
     helpSt.color = 0xFFFFFF;
     helpLabel.setPlain(ui->help, helpSt);
     helpLabel.layout(0);
+    TextStyle footSt;
+    footSt.size = 8.5;
+    footSt.color = 0xB4BCD8;
+    footer.setPlain(tr("Unofficial fan-made port of Alphabounce (Motion Twin, 2007), not affiliated with Motion Twin "
+                       "- game licensed CC BY-NC-SA 4.0",
+                       "Portage non officiel d'Alphabounce (Motion Twin, 2007) r\xC3\xA9" "alis\xC3\xA9 par des fans, "
+                       "sans lien avec Motion Twin - jeu sous licence CC BY-NC-SA 4.0",
+                       "Inoffizielle Fan-Portierung von Alphabounce (Motion Twin, 2007), nicht mit Motion Twin "
+                       "verbunden - Lizenz CC BY-NC-SA 4.0",
+                       "Adaptaci\xC3\xB3n no oficial de Alphabounce (Motion Twin, 2007) hecha por fans, sin relaci\xC3\xB3n "
+                       "con Motion Twin - licencia CC BY-NC-SA 4.0"),
+                    footSt);
+    loadFeedPrefs();
     return true;
 }
 
@@ -510,10 +523,44 @@ std::string Site::formatDate(long long tt) const {
     return out;
 }
 
+std::string Site::tr(const char* en, const char* fr, const char* de, const char* es) const {
+    return lang == "fr" ? fr : lang == "de" ? de : lang == "es" ? es : en;
+}
+
+void Site::loadFeedPrefs() {
+    auto& so = flash::Stage::get()->sharedObject("pref");
+    hideCompleted = so.value("hideCompleted", false);
+    dismissed.clear();
+    if (so["dismissed"].is_array())
+        for (auto& n : so["dismissed"])
+            if (n.is_number()) dismissed.insert((int)n);
+}
+
+void Site::saveFeedPrefs() {
+    auto* st = flash::Stage::get();
+    auto& so = st->sharedObject("pref");
+    so["hideCompleted"] = hideCompleted;
+    so["dismissed"] = nlohmann::json(std::vector<int>(dismissed.begin(), dismissed.end()));
+    st->flushSharedObject("pref");
+}
+
 void Site::buildMissions() {
-    Card& info = addCard(load("small_post.gif"), "", ui->lost);
-    info.info = true;
     const PlayerInfo* pi = Cs::pi;
+    // the help line, plus the feed's filters (a convenience of the port; the site had no such switches)
+    std::string html = ui->lost;
+    html += std::string("<br/><a href=\"3\">") +
+            (hideCompleted ? tr("Show completed missions", "Afficher les missions accomplies",
+                                "Erf\xC3\xBCllte Missionen zeigen", "Mostrar las misiones cumplidas")
+                           : tr("Hide completed missions", "Masquer les missions accomplies",
+                                "Erf\xC3\xBCllte Missionen ausblenden", "Ocultar las misiones cumplidas")) +
+            "</a>";
+    if (!dismissed.empty())
+        html += std::string(" &nbsp; <a href=\"4\">") +
+                tr("Bring back dismissed missions", "R\xC3\xA9" "afficher les missions retir\xC3\xA9" "es",
+                   "Entfernte Missionen zur\xC3\xBC" "ckholen", "Recuperar las misiones descartadas") +
+                " (" + std::to_string(dismissed.size()) + ")</a>";
+    Card& info = addCard(load("small_post.gif"), "", html);
+    info.info = true;
     if (!pi) return;
     // newest first, like the site's news feed; each mission appears once: its briefing while it's under
     // way, replaced by its outcome once completed
@@ -521,11 +568,16 @@ void Site::buildMissions() {
     for (size_t k = pi->log.size(); k-- > 0;) {
         const MissionLogEntry& e = pi->log[k];
         if (!shown.insert(e.mission).second) continue;
+        bool completed = e.state == 1;
+        if (dismissed.count(e.mission) || (completed && hideCompleted)) continue;
         std::string n = std::to_string(e.mission);
-        std::string body = t((e.state == 0 ? "mission_desc_" : "mission_end_") + n);
+        std::string body = t((completed ? "mission_end_" : "mission_desc_") + n);
         if (body.empty()) continue;
-        addCard(load("small_mission.gif"), t("mission_name_" + n), fillPlaceholders(body), formatDate(e.time),
-                vignette(e.mission));
+        body = fillPlaceholders(body);
+        if (completed)
+            body += "<p><a href=\"" + std::to_string(100 + e.mission) + "\">" +
+                    tr("Dismiss", "Retirer", "Entfernen", "Descartar") + "</a></p>";
+        addCard(load("small_mission.gif"), t("mission_name_" + n), body, formatDate(e.time), vignette(e.mission));
     }
 }
 
@@ -583,10 +635,16 @@ void Site::buildDebug() {
     SDL_GetCurrentRenderOutputSize(ren, &ow, &oh);
     std::string html = std::string("<a href=\"2\">") + (st->debug.showFps ? "Hide" : "Show") +
                        " the frame rate</a> (or press <strong>F3</strong>)<br/>"
-                       "The overlay sits in the corner of the game: frames drawn per second, the time spent "
+                       "The overlay sits over the logo: frames drawn per second, the time spent "
                        "updating and drawing each frame, how many glowing or blurred objects were drawn, "
                        "how many of them needed a slow GPU read-back, and the scratch textures in use.";
     addCard(load("small_options.gif", true), "Frame rate", html);
+    std::string travel = std::string("<a href=\"5\">") + (st->debug.freeTravel ? "Turn off" : "Turn on") +
+                         " free travel</a> : <strong>" + (st->debug.freeTravel ? "ON" : "off") +
+                         "</strong><br/>Click any square on the galaxy map to fly there and play it, ignoring "
+                         "your engine's range, the radar, fuel and the ESCorp's zone. Levels and saves work as "
+                         "usual, so missions can be completed this way.";
+    addCard(load("small_earth.gif", true), "Free travel", travel);
     std::string info = std::string("Renderer : <strong>") + (rname ? rname : "?") + "</strong><br/>Window : <strong>" +
                        std::to_string(ow) + " x " + std::to_string(oh) + "</strong><br/>Game scale : <strong>" +
                        std::to_string((int)std::lround(st->viewScale * 100)) + "%</strong><br/>Colour effects : <strong>" +
@@ -597,7 +655,8 @@ void Site::buildDebug() {
 
 std::string Site::signature() const {
     const PlayerInfo* pi = Cs::pi;
-    std::string s = std::to_string(tab_) + (flash::Stage::get()->debug.showFps ? "f" : "");
+    std::string s = std::to_string(tab_) + (flash::Stage::get()->debug.showFps ? "f" : "") +
+                    (flash::Stage::get()->debug.freeTravel ? "t" : "");
     if (pi)
         s += "|" + std::to_string(pi->log.size()) + "|" + std::to_string(pi->minerai) + "|" + std::to_string(pi->sectors.size()) + "|" + std::to_string(pi->x) +
              "," + std::to_string(pi->y) + "|" + std::to_string(pi->missile) + "|" + std::to_string(pi->stats.levels) +
@@ -724,10 +783,19 @@ void Site::handleEvent(const SDL_Event& e) {
                         setTab(Help);
                         break;
                     }
-                    if (l == 2) {
+                    if (l == 2 || l == 5) {
                         auto* stg = flash::Stage::get();
-                        stg->debug.showFps = !stg->debug.showFps;
+                        if (l == 2) stg->debug.showFps = !stg->debug.showFps;
+                        else stg->debug.freeTravel = !stg->debug.freeTravel;
                         stg->saveDebugPrefs();
+                        rebuild();
+                        break;
+                    }
+                    if (l == 3 || l == 4 || l >= 100) {
+                        if (l == 3) hideCompleted = !hideCompleted;
+                        else if (l == 4) dismissed.clear();
+                        else dismissed.insert(l - 100);
+                        saveFeedPrefs();
                         rebuild();
                         break;
                     }
@@ -882,6 +950,16 @@ void Site::drawPanel() {
 
 void Site::render() {
     drawFrame();
+    // where the debug overlay goes: over the logo, clear of the game
+    {
+        auto& dbg = flash::Stage::get()->debug;
+        dbg.anchorX = 72 * u;
+        dbg.anchorY = 5 * u;
+        dbg.anchorScale = u;
+    }
+    // fan-game notice, bottom right
+    footer.layout(0);
+    footer.draw(PW - 14 - footer.width(), PH - 27 + (27 - footer.height()) / 2, u);
     // fuel capsules and minerals above the game, as on the site
     if (const PlayerInfo* pi = Cs::pi) {
         Tex* fuel = load("small_fuel.gif");
