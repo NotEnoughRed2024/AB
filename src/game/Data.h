@@ -2,6 +2,7 @@
 #pragma once
 #include <SDL3/SDL.h>  // before json.hpp (MinGW: <intrin.h> must precede <cpuid.h>)
 #include <array>
+#include <map>
 #include <climits>
 #include <string>
 #include <vector>
@@ -111,7 +112,15 @@ public:
     int life = 3;
     int engine = 1, radar = 1, drone = 0;
     int pendingLevels = 0;
-    std::vector<int> fog;
+    std::vector<int> fog;  // 20x20 around the player, x-major: -1 unknown, 0 visited (lost), 1 cleared
+    // what the website's server remembered to build `fog`: every sector played, 1 = cleared, 0 = lost
+    std::map<std::pair<int, int>, int> sectors;
+    int sectorState(int sx, int sy) const {
+        auto it = sectors.find({sx, sy});
+        return it == sectors.end() ? -1 : it->second;
+    }
+    void buildFog(int sx, int sy);  // fill `fog` for the map window whose top-left sector is (sx, sy)
+    int clearedCount() const;
     SparseInts items, shopItems;
     std::vector<int> comp;
     std::vector<Travel> travel;

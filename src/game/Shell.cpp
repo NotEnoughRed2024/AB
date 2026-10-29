@@ -222,6 +222,10 @@ void Shell::endGame(int x, int y, bool victory, int min, int missiles, int itemI
     p->minerai += min;
     p->missile = missiles;
     p->addItem(itemId);
+    // the server remembered every sector played: cleared ones lose their minerals and light up the map,
+    // lost ones get a skull
+    if (victory) p->sectors[{x, y}] = 1;
+    else if (p->sectorState(x, y) != 1) p->sectors[{x, y}] = 0;
     // the website remembered where the envelope came from, so the map can animate the move
     p->ox = p->x;
     p->oy = p->y;

@@ -44,6 +44,7 @@ void Map::init() {
     flFuel = pi->chs + pi->chl > 0;
     SX = pi->x - hx_;
     SY = pi->y - hy_;
+    pi->buildFog(SX, SY);  // the server sent this with the player's infos
 
     // SEED TABLE
     const int TW = XMAX + ZONE_MARGIN * 2, TH = YMAX + ZONE_MARGIN * 2;
@@ -76,7 +77,8 @@ void Map::update() {
     deadMenu.reset();
     if (pendingMove) {
         pendingMove = false;
-        confirmMove(pendingX, pendingY, true);
+        // Api.play: the server only offered the minerals of sectors not cleared yet
+        confirmMove(pendingX, pendingY, Cs::pi->sectorState(pendingX, pendingY) != 1);
     }
     switch (step) {
         case Move: updateMove(); break;
@@ -710,7 +712,6 @@ void Map::drawFog() {
                     }
             }
     const unsigned dark[2] = {0xFF000000, 0xFF330000};
-    bool any = false;
     for (int x = 0; x < XMAX; x++)
         for (int y = 0; y < YMAX; y++) {
             int n = fog[x][y];
@@ -719,10 +720,8 @@ void Map::drawFog() {
                 r.add(x * BW, y * BH);
                 r.add(x * BW + BW, y * BH + BH);
                 bmpFog->fillRect(r, dark[n]);
-                any = true;
             }
         }
-    if (!any) return;  // the offline/website builds reveal the whole map: nothing else to draw
     flash::Filter fl = flash::Filter::glow(2, 8, 0xAA00FF);
     bmpFog->applyFilter(fl);
     MC skull = dm->attach("mcSkull", 0);

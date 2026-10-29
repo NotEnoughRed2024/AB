@@ -197,6 +197,21 @@ void PlayerInfo::setToDefault() {
     travel.clear();
     houseDone.clear();
     square.clear();
+    sectors.clear();
+}
+
+void PlayerInfo::buildFog(int sx, int sy) {
+    fog.assign(20 * 20, -1);
+    int i = 0;
+    for (int x = 0; x < 20; x++)
+        for (int y = 0; y < 20; y++) fog[i++] = sectorState(sx + x, sy + y);
+}
+
+int PlayerInfo::clearedCount() const {
+    int n = 0;
+    for (auto& [k, v] : sectors)
+        if (v == 1) n++;
+    return n;
 }
 
 int PlayerInfo::getRay() const {
@@ -293,6 +308,14 @@ void PlayerInfo::loadCache() {
             if (st == 1) log.push_back({n, 1, 0});
         }
     }
+    sectors.clear();
+    if (so["sectors"].is_array()) {
+        for (auto& e : so["sectors"])
+            if (e.is_array() && e.size() >= 3) sectors[{(int)e[0], (int)e[1]}] = (int)e[2];
+    } else {
+        // saves from before the map remembered sectors: the envelope only ever stands on cleared ones
+        sectors[{x, y}] = 1;
+    }
     const json& js = so["stats"];
     if (js.is_object()) {
         stats.levels = js.value("levels", 0);
@@ -339,6 +362,9 @@ void PlayerInfo::saveCache() {
         tr.push_back({{"name", t.name}, {"sx", t.sx}, {"sy", t.sy}, {"ex", t.ex}, {"ey", t.ey}, {"start", t.start}, {"dest", t.dest}});
     so["travel"] = tr;
     so["houseDone"] = houseDone;
+    json sc = json::array();
+    for (auto& [k, v] : sectors) sc.push_back({k.first, k.second, v});
+    so["sectors"] = sc;
     json lg = json::array();
     for (auto& e : log) lg.push_back({e.mission, e.state, e.time});
     so["log"] = lg;

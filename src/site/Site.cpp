@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <set>
 
 #include "flash/Stage.h"
 #include "game/Game.h"
@@ -103,7 +104,9 @@ const Ui UI_EN = {
      {"The galaxy map",
       "Click one of the highlighted squares around your envelope to fly there and drill it; a better "
       "<strong>engine</strong> reaches further. Alien icons are <strong>astroports</strong>: stop on one and "
-      "open the shop with the button at the bottom of the map. The spanner button holds your preferences."}},
+      "open the shop with the button at the bottom of the map. The spanner button holds your preferences.<br/>"
+      "Sectors you have cleared stay lit (their minerals are gone), skulls mark the ones where you lost, and "
+      "your <strong>radar</strong> decides how far into the dark you can fly."}},
     {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
     {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"},
     {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November",
@@ -159,7 +162,9 @@ const Ui UI_FR = {
       "Cliquez sur une des cases en surbrillance autour de votre enveloppe pour y aller et la forer ; un meilleur "
       "<strong>moteur</strong> va plus loin. Les ic\xC3\xB4nes extraterrestres sont des <strong>astroports</strong> : "
       "arr\xC3\xAAtez-vous dessus et ouvrez la boutique avec le bouton en bas de la carte. La cl\xC3\xA9 donne acc\xC3\xA8s "
-      "aux pr\xC3\xA9" "f\xC3\xA9rences."}},
+      "aux pr\xC3\xA9" "f\xC3\xA9rences.<br/>Les secteurs nettoy\xC3\xA9s restent \xC3\xA9" "clair\xC3\xA9s (leur minerai est \xC3\xA9puis\xC3\xA9), "
+      "les t\xC3\xAAtes de mort marquent vos \xC3\xA9" "checs, et votre <strong>radar</strong> fixe jusqu'o\xC3\xB9 vous pouvez "
+      "vous aventurer dans l'inconnu."}},
     {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"},
     {"dim", "lun", "mar", "mer", "jeu", "ven", "sam"},
     {"janvier", "f\xC3\xA9vrier", "mars", "avril", "mai", "juin", "juillet", "ao\xC3\xBBt", "septembre", "octobre",
@@ -215,7 +220,8 @@ const Ui UI_DE = {
       "Klicke auf eines der hervorgehobenen Felder um deine H\xC3\xBClle, um dorthin zu fliegen und es abzubauen; "
       "ein besserer <strong>Antrieb</strong> reicht weiter. Alien-Symbole sind <strong>Astroports</strong>: halte "
       "dort an und \xC3\xB6" "ffne den Laden mit dem Knopf unten auf der Karte. Der Schraubenschl\xC3\xBCssel \xC3\xB6" "ffnet "
-      "die Einstellungen."}},
+      "die Einstellungen.<br/>Ger\xC3\xA4umte Sektoren bleiben hell (ihre Mineralien sind abgebaut), Totenk\xC3\xB6pfe "
+      "markieren verlorene, und dein <strong>Radar</strong> bestimmt, wie weit du ins Dunkle fliegen kannst."}},
     {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"},
     {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"},
     {"Januar", "Februar", "M\xC3\xA4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
@@ -269,7 +275,9 @@ const Ui UI_ES = {
      {"El mapa de la galaxia",
       "Haz clic en una de las casillas resaltadas alrededor de tu envoltura para viajar all\xC3\xAD y perforarla; "
       "un <strong>motor</strong> mejor llega m\xC3\xA1s lejos. Los iconos alien\xC3\xAD" "genas son <strong>astropuertos</strong>: "
-      "detente en uno y abre la tienda con el bot\xC3\xB3n de abajo del mapa. La llave abre las preferencias."}},
+      "detente en uno y abre la tienda con el bot\xC3\xB3n de abajo del mapa. La llave abre las preferencias.<br/>"
+      "Los sectores limpiados quedan iluminados (sus minerales se agotaron), las calaveras marcan los perdidos y "
+      "tu <strong>radar</strong> decide hasta d\xC3\xB3nde puedes volar en la oscuridad."}},
     {"domingo", "lunes", "martes", "mi\xC3\xA9rcoles", "jueves", "viernes", "s\xC3\xA1" "bado"},
     {"dom", "lun", "mar", "mi\xC3\xA9", "jue", "vie", "s\xC3\xA1" "b"},
     {"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre",
@@ -507,9 +515,12 @@ void Site::buildMissions() {
     info.info = true;
     const PlayerInfo* pi = Cs::pi;
     if (!pi) return;
-    // newest first, like the site's news feed
+    // newest first, like the site's news feed; each mission appears once: its briefing while it's under
+    // way, replaced by its outcome once completed
+    std::set<int> shown;
     for (size_t k = pi->log.size(); k-- > 0;) {
         const MissionLogEntry& e = pi->log[k];
+        if (!shown.insert(e.mission).second) continue;
         std::string n = std::to_string(e.mission);
         std::string body = t((e.state == 0 ? "mission_desc_" : "mission_end_") + n);
         if (body.empty()) continue;
@@ -527,7 +538,7 @@ void Site::buildMyPage() {
     SDL_snprintf(daysBuf, sizeof daysBuf, ui->prisonerFor, (int)days);
     std::string where = "[" + std::to_string(pi->x) + "][" + std::to_string(pi->y) + "]";
     std::string html = std::string(ui->position) + " : <em>" + where + "</em> &nbsp; " + daysBuf + " &nbsp; " +
-                       ui->exploration + " : <strong>" + numStr(pi->stats.cleared) + "</strong>";
+                       ui->exploration + " : <strong>" + numStr(pi->clearedCount()) + "</strong>";
     Card& head = addCard(load("small_pad.gif"), pilotName(), html);
     head.compact = true;
     if (inventory.ready()) {
@@ -569,7 +580,7 @@ std::string Site::signature() const {
     const PlayerInfo* pi = Cs::pi;
     std::string s = std::to_string(tab_);
     if (pi)
-        s += "|" + std::to_string(pi->log.size()) + "|" + std::to_string(pi->minerai) + "|" + std::to_string(pi->x) +
+        s += "|" + std::to_string(pi->log.size()) + "|" + std::to_string(pi->minerai) + "|" + std::to_string(pi->sectors.size()) + "|" + std::to_string(pi->x) +
              "," + std::to_string(pi->y) + "|" + std::to_string(pi->missile) + "|" + std::to_string(pi->stats.levels) +
              "|" + std::to_string(pi->items.size()) + "|" + std::to_string(pi->life);
     return s;
